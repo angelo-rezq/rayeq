@@ -1,7 +1,7 @@
 # Ratings, reviews and work photos
 
 All JSON endpoints return `{data:...}` or `{error:{code,message,fields}}`.
-Ratings/reviews are live. Gallery is implemented and undergoing deployment verification; completion is reported separately.
+Ratings/reviews are live. Gallery is live-verified, including worker raw upload, normalized public image, customer gallery/detail and both admin/worker deletion.
 
 ## Reviews
 - Customer `POST /api/v1/bookings/:bookingId/review`, Bearer, `{rating:1..5,text?:string}`. Integer rating, optional trimmed plain text up to 1000 characters. Completed booking with an assigned barber, owned by this customer, once only. Booking row lock plus unique booking constraint prevents duplicate concurrent reviews. 201 returns `{id,rating,text,customerDisplayName,createdAt,demoOnly}`. Duplicate 409 `REVIEW_ALREADY_EXISTS`; ineligible 409 `REVIEW_NOT_ELIGIBLE`; another customer's booking 404.
