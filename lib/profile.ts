@@ -5,9 +5,9 @@ import {fail,User,rateLimit} from './auth';
 const origin=()=>String(process.env.PUBLIC_ORIGIN||process.env.RENDER_EXTERNAL_URL||'').replace(/\/$/,'');
 const ok=(data:unknown)=>Response.json({data});
 export async function profileFor(u:User){
- const row=(await pool.query('SELECT u.name,p.phone,p.avatar_version,octet_length(p.avatar_bytes) avatar_size,e.id employee_id,e.name employee_name,e.active,e.service_ids,e.area_ids FROM rayeq_users u LEFT JOIN rayeq_profiles p ON p.user_id=u.id LEFT JOIN rayeq_employees e ON e.user_id=u.id WHERE u.id=$1',[u.id])).rows[0];
+ const row=(await pool.query('SELECT u.name,p.phone,p.avatar_version,octet_length(p.avatar_bytes) avatar_size,e.id employee_id,e.name employee_name,e.name_en employee_name_en,e.active,e.service_ids,e.area_ids FROM rayeq_users u LEFT JOIN rayeq_profiles p ON p.user_id=u.id LEFT JOIN rayeq_employees e ON e.user_id=u.id WHERE u.id=$1',[u.id])).rows[0];
  if(!row)fail(404,'NOT_FOUND','الحساب غير موجود');
- return {...u,name:row.name,phone:row.phone||'',avatarUrl:row.avatar_size?origin()+'/api/v1/profile/avatar?v='+row.avatar_version:null,...(row.employee_id?{workerProfile:{employeeId:row.employee_id,employeeName:row.employee_name,active:row.active,serviceIds:row.service_ids,areaIds:row.area_ids}}:{})};
+ return {...u,name:row.name,displayNameEn:row.employee_name_en||'',phone:row.phone||'',avatarUrl:row.avatar_size?origin()+'/api/v1/profile/avatar?v='+row.avatar_version:null,...(row.employee_id?{workerProfile:{employeeId:row.employee_id,employeeName:row.employee_name,employeeNameEn:row.employee_name_en||'',active:row.active,serviceIds:row.service_ids,areaIds:row.area_ids}}:{})};
 }
 let encoding=false;
 export async function profileRoute(req:Request,u:User,path:string):Promise<Response|undefined>{

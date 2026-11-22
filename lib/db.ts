@@ -17,6 +17,12 @@ ALTER TABLE rayeq_services ADD COLUMN IF NOT EXISTS category_en text NOT NULL DE
 CREATE TABLE IF NOT EXISTS rayeq_areas(id uuid PRIMARY KEY,name_ar text NOT NULL,travel_fee_minor integer NOT NULL CHECK(travel_fee_minor>=0),version integer NOT NULL DEFAULT 1,active boolean NOT NULL DEFAULT true);
 ALTER TABLE rayeq_areas ADD COLUMN IF NOT EXISTS name_en text NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS rayeq_employees(id uuid PRIMARY KEY,user_id uuid UNIQUE REFERENCES rayeq_users(id),name text NOT NULL,phone text NOT NULL DEFAULT '',active boolean NOT NULL DEFAULT true,service_ids uuid[] NOT NULL DEFAULT '{}',area_ids uuid[] NOT NULL DEFAULT '{}',salary_minor integer NOT NULL DEFAULT 0 CHECK(salary_minor>=0),created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE rayeq_employees ADD COLUMN IF NOT EXISTS name_en text NOT NULL DEFAULT '';
+ALTER TABLE rayeq_employees ADD COLUMN IF NOT EXISTS availability_status text NOT NULL DEFAULT 'offline' CHECK(availability_status IN ('offline','available','busy'));
+ALTER TABLE rayeq_employees ADD COLUMN IF NOT EXISTS coarse_zone_lat numeric(5,2) CHECK(coarse_zone_lat BETWEEN -90 AND 90);
+ALTER TABLE rayeq_employees ADD COLUMN IF NOT EXISTS coarse_zone_lon numeric(5,2) CHECK(coarse_zone_lon BETWEEN -180 AND 180);
+ALTER TABLE rayeq_employees ADD COLUMN IF NOT EXISTS location_updated_at timestamptz;
+ALTER TABLE rayeq_employees ADD COLUMN IF NOT EXISTS availability_updated_at timestamptz;
 CREATE TABLE IF NOT EXISTS rayeq_bookings(id uuid PRIMARY KEY,reference text UNIQUE NOT NULL,customer_id uuid NOT NULL REFERENCES rayeq_users(id),employee_id uuid REFERENCES rayeq_employees(id),status text NOT NULL DEFAULT 'PENDING',requested_at timestamptz,start_at timestamptz,end_at timestamptz,version integer NOT NULL DEFAULT 1,document jsonb NOT NULL,internal_notes text NOT NULL DEFAULT '',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS rayeq_customer_bookings ON rayeq_bookings(customer_id,created_at DESC,id);
 CREATE INDEX IF NOT EXISTS rayeq_employee_bookings ON rayeq_bookings(employee_id,start_at,end_at);

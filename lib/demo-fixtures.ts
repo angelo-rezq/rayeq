@@ -14,3 +14,9 @@ export function paymentStatusLabels(status:string){
  const labels:Record<string,[string,string]>={UNPAID:['لسه ما اتدفعش','Not paid yet'],PENDING_REVIEW:['قيد المراجعة','Under review'],PAID:['تم الدفع','Paid']};
  const pair=labels[status];return pair?{statusLabelAr:pair[0],statusLabelEn:pair[1]}:{};
 }
+// Fictional coarse Minya zones, not employee/home addresses. Manifest-owned and removed with the pilot.
+export function pilotNearbyBarbers(employeeId:string,serviceIds:string[],areaIds:string[]){return[
+ {id:employeeId,nameAr:pilotPreview.workerName,nameEn:pilotPreview.workerNameEn,coarseZoneLat:28.09,coarseZoneLon:30.76,serviceIds,areaIds},
+ {id:'d0e00000-0000-4000-8000-000000000202',nameAr:'عمر عادل',nameEn:'Omar Adel',coarseZoneLat:28.10,coarseZoneLon:30.75,serviceIds,areaIds},
+ {id:'d0e00000-0000-4000-8000-000000000203',nameAr:'يوسف محمود',nameEn:'Youssef Mahmoud',coarseZoneLat:28.07,coarseZoneLon:30.77,serviceIds,areaIds}
+];}

@@ -1,4 +1,4 @@
-import {pilotPreview} from '../lib/demo-fixtures';
+import {pilotPreview,pilotNearbyBarbers} from '../lib/demo-fixtures';
 import {DateTime} from 'luxon';
 import {pool,tx,audit} from '../lib/db';
 const seedId='rayeq-pilot-20261122';
@@ -18,9 +18,9 @@ async function main(){console.log(await tx(async db=>{
  if((await db.query('SELECT id FROM rayeq_services WHERE id=ANY($1::uuid[])',[serviceIds])).rowCount||(await db.query('SELECT id FROM rayeq_areas WHERE id=ANY($1::uuid[])',[areaIds])).rowCount)throw Error('Seed identifier collision');
  for(const[id,duration]of [[serviceIds[0],30],[serviceIds[1],20]]as const){const item=pilotPreview.services[id];await db.query('INSERT INTO rayeq_services(id,name_ar,name_en,description_ar,description_en,category,category_en,duration_minutes,price_minor,active,image_url) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,true,$10)',[id,item.nameAr,item.nameEn,item.descriptionAr,item.descriptionEn,item.category,item.categoryEn,duration,item.priceMinor,'https://rayeq-platform.onrender.com/mobile-demo/assets/assets/images/grooming.webp']);}
  await db.query('INSERT INTO rayeq_areas(id,name_ar,name_en,travel_fee_minor,active) VALUES($1,$2,$3,0,true)',[areaIds[0],pilotPreview.areaNameAr,pilotPreview.areaNameEn]);
- await db.query('UPDATE rayeq_employees SET service_ids=$1,area_ids=$2 WHERE id=$3',[serviceIds,areaIds,employee.id]);
+ await db.query('UPDATE rayeq_employees SET service_ids=$1,area_ids=$2,name_en=$4 WHERE id=$3',[serviceIds,areaIds,employee.id,pilotPreview.workerNameEn]);
  const expiresAt=DateTime.now().setZone('Africa/Cairo').plus({days:7}).toUTC().toISO();
- const manifest={seedId,serviceIds,areaIds,customerId:customer.id,workerUserId:worker.id,employeeId:employee.id,previousServiceIds:employee.service_ids,previousAreaIds:employee.area_ids,createdAt:new Date().toISOString(),expiresAt};
+ const manifest={nearbyBarbers:pilotNearbyBarbers(employee.id,serviceIds,areaIds),nearbySeededAt:new Date().toISOString(),seedId,serviceIds,areaIds,customerId:customer.id,workerUserId:worker.id,employeeId:employee.id,previousServiceIds:employee.service_ids,previousAreaIds:employee.area_ids,createdAt:new Date().toISOString(),expiresAt};
  c.demoPilot={enabled:true,seedId,customerIds:[customer.id],serviceIds,areaIds,expiresAt};
  await db.query("UPDATE rayeq_settings SET value=$1 WHERE key='config'",[JSON.stringify(c)]);
  await db.query('INSERT INTO rayeq_settings(key,value) VALUES($1,$2)',[key,JSON.stringify(manifest)]);
