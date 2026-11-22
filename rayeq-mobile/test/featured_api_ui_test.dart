@@ -74,7 +74,7 @@ void main() {
                 builder: rayeqBackdrop,
                 home: Scaffold(
                   body: ListView(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.zero,
                     children: [
                       CustomerHome(
                         api: FeaturedReviewApi(),

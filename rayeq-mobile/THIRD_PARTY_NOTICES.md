@@ -16,3 +16,7 @@ The app depends on Flutter and the packages recorded in `pubspec.lock`. Their no
 ## Images
 
 See `PHOTO_CREDITS.md` for image sources, demonstration-use notes and license links.
+
+## Brand fonts
+Noto Sans Arabic, copyright 2022 The Noto Project Authors, and Jost, copyright 2020 The Jost Project Authors. Both are distributed under SIL Open Font License 1.1. Full licenses are included in assets/fonts/notosansarabic-OFL.txt and assets/fonts/jost-OFL.txt.
+Sources: https://github.com/google/fonts/blob/main/ofl/notosansarabic/OFL.txt and https://github.com/google/fonts/blob/main/ofl/jost/OFL.txt

@@ -1,7 +1,11 @@
+import 'brand.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+
 import 'demo_data.dart';
 import 'review_hub.dart';
+
 import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -27,7 +31,7 @@ class RayeqApp extends StatelessWidget {
     valueListenable: appLocale,
     builder: (context, locale, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'رايق | حلاقك عندك',
+      title: 'رايق | حلاقك لحد باب بيتك',
       locale: locale,
       supportedLocales: const [Locale('ar', 'EG'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -35,7 +39,9 @@ class RayeqApp extends StatelessWidget {
       builder: rayeqBackdrop,
       home: kIsWeb && previewFixturesEnabled && api == null
           ? const ReviewHub()
-          : AppUpdateGate(child: LiveShell(api: api)),
+          : RayeqStartup(
+              child: AppUpdateGate(child: LiveShell(api: api)),
+            ),
     ),
   );
 }

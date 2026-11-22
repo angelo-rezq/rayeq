@@ -42,6 +42,9 @@ class DemoBadge extends StatelessWidget {
 }
 
 const fixtureArabic = <String, String>{
+  'Demo customer': 'عميل تجريبي',
+  'Demo review for presentation only, not a real customer experience.':
+      'تقييم تجريبي لعرض شكل المراجعات، وليس تجربة عميل حقيقية.',
   'Alex Morgan': 'أليكس مورغان',
   'Daniel Reed': 'دانيال ريد',
   'James Parker': 'جيمس باركر',
@@ -239,13 +242,13 @@ class DemoBarberCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: royalSurface,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: royalLine),
+        border: Border.all(color: royalGold.withValues(alpha: .35), width: .7),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 158,
+            height: 126,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -378,10 +381,12 @@ class DemoBarberPage extends StatelessWidget {
             SizedBox(height: 17),
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: Text(appLocale.value.languageCode == 'ar'
-                  ? 'معاينة · اسم وصورة وتقييمات نموذجية، مش حلاق فعلي في رايق.'
-                  : 'Preview: sample name, photo and ratings, not a real Rayeq worker.',
-                  style: const TextStyle(color: royalGold, fontSize: 12)),
+              child: Text(
+                appLocale.value.languageCode == 'ar'
+                    ? 'معاينة · اسم وصورة وتقييمات نموذجية، مش حلاق فعلي في رايق.'
+                    : 'Preview: sample name, photo and ratings, not a real Rayeq worker.',
+                style: const TextStyle(color: royalGold, fontSize: 12),
+              ),
             ),
             SizedBox(height: 12),
             Text(

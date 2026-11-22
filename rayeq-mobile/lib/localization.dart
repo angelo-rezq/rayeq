@@ -71,6 +71,7 @@ const english = <String, String>{
       'The area changed. Choose a barber again if you want.',
 
   'حلاقك عندك': 'Your barber, at your door',
+  'حلاقك لحد باب بيتك': 'Your barber, at your door',
   'رايق': 'Rayeq',
   'الملف الشخصي': 'Profile',
   'خيارات الحساب': 'Account options',

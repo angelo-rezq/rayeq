@@ -6,6 +6,7 @@
         android:label="رايق"
         android:name="${applicationName}"
         android:allowBackup="false"
+        android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher">
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.updates" android:exported="false" android:grantUriPermissions="true">

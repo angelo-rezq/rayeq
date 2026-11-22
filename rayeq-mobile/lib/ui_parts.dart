@@ -1,3 +1,4 @@
+import 'royal_theme.dart';
 import 'barber_profiles.dart';
 import 'nearby.dart' show nearbyText;
 import 'localization.dart';
@@ -324,7 +325,10 @@ class AccountProfile extends StatelessWidget {
         SizedBox(height: 18),
         Center(
           child: Text(
-            tr('رايق · حلاقك عندك'),
+            nearbyText(
+              'رايق · حلاقك لحد باب بيتك',
+              'Rayeq · Your barber, at your door',
+            ),
             style: TextStyle(color: Color(0xffb8b8bf), fontSize: 12),
           ),
         ),
@@ -431,6 +435,11 @@ class _BookingDetailsState extends State<BookingDetails> {
             address = b['address'] as Map? ?? {},
             price = b['price'] as Map? ?? {},
             payment = b['payment'] as Map? ?? {};
+        final customerProfile = b['customerProfile'] is Map
+            ? b['customerProfile'] as Map
+            : const {};
+        final accountName = '${customerProfile['name'] ?? ''}'.trim();
+        final accountBio = '${customerProfile['bio'] ?? ''}'.trim();
         final history = b['history'] as List? ?? [];
         return Center(
           child: ConstrainedBox(
@@ -521,6 +530,40 @@ class _BookingDetailsState extends State<BookingDetails> {
                         ),
                       ),
                       item('العميل', displayCustomerName(b)),
+                      if (widget.employee &&
+                          accountName.isNotEmpty &&
+                          accountName != displayCustomerName(b))
+                        item(
+                          nearbyText('صاحب الحساب', 'Account holder'),
+                          accountName,
+                        ),
+                      if (widget.employee && accountBio.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nearbyText(
+                                  'نبذة صاحب الحساب',
+                                  'Account holder bio',
+                                ),
+                                style: const TextStyle(
+                                  color: royalGold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                accountBio,
+                                style: const TextStyle(
+                                  color: royalMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       item('الموبايل', '${b['contactPhone'] ?? ''}'),
                       item(
                         'المكان',

@@ -1,3 +1,5 @@
+import 'brand.dart';
+
 import 'dart:async';
 
 import 'localization.dart';
@@ -238,10 +240,7 @@ class AppUpdateGateState extends State<AppUpdateGate>
       return Scaffold(
         body: Center(
           child: showing
-              ? Text(
-                  appLocale.value.languageCode == 'en' ? 'Rayeq' : 'رايق',
-                  style: const TextStyle(color: royalGold, fontSize: 38),
-                )
+              ? const RayeqBrandLockup()
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

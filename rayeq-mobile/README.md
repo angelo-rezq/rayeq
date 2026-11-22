@@ -1,10 +1,10 @@
 # Rayeq mobile
 
-Flutter customer and worker app for رايق, حلاقك عندك. Android is the build target. The admin dashboard is a separate web app.
+Flutter Android customer and worker app for رايق. Customer-facing tagline: حلاقك لحد باب بيتك / Your barber, at your door. The admin dashboard stays on the web.
 
 ## Build
 
-Toolchain used for the reviewed build: Flutter 3.50.1, Dart 3.14.0, JDK 21, Android SDK 36 and Gradle 9.5. Set ANDROID_HOME and JAVA_HOME for your own installation, then run:
+Toolchain: Flutter 3.50.1, Dart 3.14.0, JDK 21, Android SDK 36, Gradle 9.5. Set JAVA_HOME and ANDROID_HOME for your installation.
 
 ```sh
 flutter pub get
@@ -15,64 +15,49 @@ flutter build apk --release --target-platform android-arm64 \
   --dart-define=UPDATE_DOWNLOAD_HOST=rayeq-releases.onrender.com
 ```
 
-Package: `com.rayeq.rayeq`. Version: `1.1.0+2`. The reviewed APK is ARM64-only, minimum Android API 24, target API 36. Native libraries use legacy extraction for compatibility. Output: `build/app/outputs/flutter-apk/app-release.apk`.
+Package `com.rayeq.rayeq`. Source version `1.1.1+3`. ARM64-only, target SDK 36. Native libraries use legacy extraction. The build-3 APK has not yet been compiled or approved in this source checkpoint.
 
-`PREVIEW_FIXTURES` defaults to false. Only pass `--dart-define=PREVIEW_FIXTURES=true` for an explicitly requested review build. The flag enables the demo barber directory and known bilingual sample labels. It does not create or delete backend records. Backend pilot cleanup must be handled separately, with owner approval.
+PREVIEW_FIXTURES defaults to false. Add `--dart-define=PREVIEW_FIXTURES=true` only for the requested review build. It enables labelled demo profiles and known bilingual samples. It never deletes backend data. The web review build opens a labelled customer/worker/auth screen index with an isolated sample adapter. Native builds open the connected app, not that index.
 
-## Web review index
+## Signing
 
-A web build with `PREVIEW_FIXTURES=true` opens a labelled screen index with customer, worker, authentication and information/update routes. The review adapter uses local sample responses, without replacing live sessions or sending real bookings/reviews/uploads. A separate Connected app entry uses the actual API. Native Android builds do not open this index.
+Release builds no longer fall back to a debug certificate. Set both private environment inputs to sign, or neither to produce an unsigned artifact:
 
-## Reviews and work photos
+- RAYEQ_STORE_FILE: restored PKCS12 keystore path.
+- RAYEQ_STORE_PASSWORD_FILE: protected UTF-8 file holding its password.
 
-Customers can review their own completed visits once, when the backend returns `canReview=true`. Public profiles display API rating aggregates, paginated reviews and work photos. Empty ratings are not fabricated. Approved workers can choose camera or gallery, upload raw JPEG/PNG/WebP files up to 5 MiB, and delete their photos with confirmation. The backend re-encodes images and enforces its six-photo cap and upload-rate limits. Featured API profiles and nearby selection open the public profile.
+The key alias is `rayeq`. Keep the key and password outside this repository and outside source archives. The encrypted signing backup and its password are stored separately. Never generate a new key for an ordinary update.
 
-## Signing and updates
+Build 2 uses a replacement release key. Build 3 must retain that same key to update build 2. Neither build can update build 1 in place, whose original key was lost. Verify the signed APK certificate and update compatibility before publishing. No build-3 installation or upgrade has yet been tested on an Android device.
 
-This pilot uses the local Android development signing configuration. The signing key is deliberately not included in this source archive. Building on a new machine creates a different development certificate unless the original keystore is securely restored. That build cannot update the already installed pilot app.
+## Public profiles, photos and biographies
 
-Preserve the original signing key securely before relying on continued pilot updates. Do not commit a keystore or its password. Switching to a different signing certificate requires a separate migration plan; changing the key in this project alone does not upgrade existing installations.
+Public detail, reviews and gallery load independently. A failed optional section does not discard successful profile data. Portraits use portraitUrl and fall back to a labelled work-photo thumbnail, then a placeholder. The API supplies services, prices, coverage, experience and public biography. Empty ratings are not invented. Prices exclude travel where the server says so.
 
-The Android update flow checks an HTTPS download on the configured allowed host, limits the download size, verifies SHA-256, package name, exact advertised version code, a higher installed-version code, and matching signing certificates. It uses Android's package installer, including the user's unknown-source consent when required. It does not silently install. Update metadata and binaries must be published only after release approval.
+Approved workers can edit public titleAr/titleEn, bioAr/bioEn, yearsExperience and specialties, and upload/delete their portrait. Uploads use raw JPEG/PNG/WebP bytes, max 5 MiB. The backend controls prices, services and coverage. Public fields must not contain a private address or personal contact information.
 
-The recovered source passes 63 automated tests. A new native build must still be compiled and inspected. Installation, update download and device upgrade have not been tested on a real Android device. The original pilot signing key was lost; a new signing identity cannot update build 1 in place. Do not publish a recovered APK as update-compatible without checking its certificate and explaining the separate-install requirement.
+The separate customer account bio uses GET/PATCH profile.bio, max 1500, trimmed; an empty string clears it. It is visible to the assigned barber through authorized booking customerProfile.name/bio and to admins, not an anonymous public directory. Worker booking cards and visit details display the account bio, and label the account holder separately if their name differs from the actual visitor. The booking visitor name remains primary. Customer-facing notice explains the audience. Worker public bioAr/bioEn remain separate. The backend reports live HTTPS verification of save/trim/limit/clear and account isolation using temporary fictional accounts. Flutter transport/widget tests cover the wiring; a native-device smoke test is still required.
 
-## App structure
+Profile Share opens Android's native text-summary sharing sheet. There is no public landing page, so no API URL is shared. Other preview platforms copy the summary. Heart controls persist on-device under the signed-in account. Saved loads actual public barber IDs and provides retry/removal for unavailable entries.
 
-- `lib/live.dart`: authentication, customer and worker screens, bookings and schedules.
-- `lib/api.dart`: HTTPS API, Bearer sessions, secure session storage and booking idempotency.
-- `lib/localization.dart`: Arabic and English copy, saved locale and direction.
-- `lib/profile.dart`: profile details, avatar and account actions.
-- `lib/nearby.dart`: tap-only approximate location lookup, manual area fallback, requested-barber selection and opted-in foreground worker availability.
-- `lib/about.dart`: About, factual privacy information and text-only development credit.
-- `lib/app_updates.dart`: update presentation and native bridge.
-- `lib/demo_data.dart`: isolated, compile-time-gated review data.
-- `android/app/src/main/kotlin/com/rayeq/rayeq/MainActivity.kt`: native APK verification and installer handoff.
+## Booking and location
 
-Roles come from the server, not a local selector. Worker registration does not grant approval. Pending workers do not receive assigned visits. A selected available barber is booked directly only after the server returns CONFIRMED. Requests without a selected barber use management assignment. Worker completion does not mark a booking paid. Mobile checks do not replace backend authorization, price validation or assignment-conflict checks.
+Roles come from the server. Worker registration does not grant approval. Pending workers do not receive assigned visits. Selecting a barber is not confirmation: the backend must return CONFIRMED with that employee assignment. Requests without a selected barber use management assignment. Worker completion does not mark payment collected. Quotes and assignment availability are rechecked before booking.
 
-Names and other text entered by real users remain as entered. Known pilot samples and optional English backend fields have bilingual display support. The interface defaults to Arabic and supports a saved English selection.
+Location is requested only after a tap. Coordinates are rounded to 0.01 degree, used transiently for nearby/booking rechecks, and not stored on customer profiles/bookings. Workers may explicitly store or clear a coarse zone. Availability heartbeats contain no location, require opt-in and stop outside the foreground. Manual area and address entry remain available. Android requests coarse location only, never background location.
 
-## Verification and limits
+## Branding and interface
 
-The automated tests cover transport/session behavior, role restrictions, fixture isolation, localization, update grace and offline policy, explicit location permissions and zone sharing, foreground-only availability, and booking rechecks after price review. Booking forms are rendered at 320, 390 and 430px in Arabic and English. Visual tests write PNGs to the system temporary directory under `rayeq-visual-review`. Set `RAYEQ_VISUAL_OUTPUT` to choose another folder.
+The bundled monogram and Arabic wordmark are traced from the supplied brand sheet. Startup draws the mark, fills it and reveals the wordmark, respecting reduced-motion settings. Launcher icons and native launch background match. Arabic and English remain separate interface selections. Real users' names and entered text stay as entered.
 
-A passing local suite is not a full live-service or real-device acceptance test. SMTP delivery, account lifecycle, production privacy/support contact, real operational data, durable key storage and Android runtime acceptance need their own release checks. The privacy screen describes implemented data handling; it does not claim legal certification or an unimplemented retention/deletion process.
+IBM Plex Sans Arabic is bundled for interface text. Noto Sans Arabic and Jost are bundled for brand typography, without runtime downloads. See THIRD_PARTY_NOTICES.md and PHOTO_CREDITS.md. Brand SVG source files are in assets/brand.
 
-See `PHOTO_CREDITS.md` for the stock-image sources and license references. The current branding is a temporary wordmark, not a finalized logo.
+## Updates and release checks
 
-## Location and typography
+Update metadata comes from the live API. The app verifies an HTTPS URL on the configured download host, file-size limit, SHA-256, package name, exact advertised version code, higher build number and matching signing certificate before handing off to Android's installer. It never silently installs. Publish binaries and update metadata only after release approval.
 
-Customer location is requested only after tapping the location button. Coordinates are rounded to 0.01 degree before transmission. They are used transiently by the nearby/booking recheck, not stored on customer profiles or bookings. Workers can explicitly store or clear a coarse zone. Availability heartbeats contain no location, start only after opt-in, and stop outside the foreground. Manual area and typed-address routes remain available without device location. The Android app requests coarse location only, never background location.
+The optional period is 48 hours from publication, followed by the required-update deadline. Offline/failed/incomplete checks do not lock users out. Startup has an 8-second soft wait while the longer live request may continue; automatic failures retry twice one minute apart.
 
-IBM Plex Sans Arabic is bundled in four weights under its open font license, including its matching Latin glyphs. There is no runtime font download. The shared reading size is 15px, with captions and navigation no smaller than 12px before system text scaling. Filled form labels remain inside their field.
+Automated tests cover transport/session behavior, role boundaries, preview isolation, language/layout, update grace/offline behavior, booking rechecks, independent public-profile loading, editable worker fields, raw portrait upload, customer account bio save/clear and worker-only booking display, saved public profiles and native share content. Visual tests render 320, 390 and 430px app layouts in Arabic and English; screenshots are written under the temporary rayeq-visual-review folder.
 
-### Release configuration
-
-The release download hostname is supplied with `--dart-define=UPDATE_DOWNLOAD_HOST=YOUR_APPROVED_STATIC_HOST`. The same define is decoded by Android Gradle into native download validation. HTTPS, no credentials, the exact allowed host and SHA256 are checked before installation; arbitrary download hosts and redirects are rejected. Version metadata always comes from the live API, not a static manifest with a frozen clock.
-
-Version requests allow a 120-second cold-start wait. Startup uses an 8-second soft wait, then opens the app while the check continues. Failed automatic checks retry twice, one minute apart. A failed or incomplete live response never creates an offline lock. Build-2 publication uses minimum supported build 1 and a mandatory deadline exactly 48 hours after publication.
-
-For future Google Play distribution, review a separate Play flavor and installer permission/update handling. This sideload MVP has not been validated as a Play submission. No signing key or secret is included in the repository.
-
-Recovery note: the source was reconstructed from the archived v7 source plus the later product-code edits. It was re-checked with the complete test suite, including the screen index, reviews/gallery transports and update policy. The permitted static release host is `rayeq-releases.onrender.com`; keep `rayeq-platform.onrender.com` allowed too. Android compile/target SDK are pinned to 36. The temporary wordmark remains. A replaceable SVG splash animation is a later design task, not a completed feature in this build.
+A passing suite is not a real-device or full live-service acceptance test. This source checkpoint still requires native build-3 compilation/signature verification, device install/upgrade testing, and a native-device smoke test of profile editing. The current screenshot gate must be approved before the APK stage. Free-tier backend cold starts can delay live responses.

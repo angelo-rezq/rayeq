@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'brand.dart';
 import 'barber_profiles.dart';
 
 import 'package:flutter/material.dart';
@@ -39,12 +42,67 @@ class CustomerHome extends StatefulWidget {
 }
 
 class _CustomerHomeState extends State<CustomerHome> {
+  Uint8List? avatar;
+  int avatarGeneration = 0;
   List<Map<String, dynamic>> liveFeatured = [];
   bool featuredLoading = true, featuredFailed = false;
   @override
   void initState() {
     super.initState();
     loadFeatured();
+    loadAvatar();
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomerHome old) {
+    super.didUpdateWidget(old);
+    if (old.api != widget.api ||
+        old.user['id'] != widget.user['id'] ||
+        old.user['avatarUrl'] != widget.user['avatarUrl'] ||
+        old.user['hasAvatar'] != widget.user['hasAvatar'])
+      loadAvatar();
+  }
+
+  Future<void> loadAvatar() async {
+    final generation = ++avatarGeneration;
+    if (widget.user['hasAvatar'] != true && widget.user['avatarUrl'] == null) {
+      if (mounted) setState(() => avatar = null);
+      return;
+    }
+    try {
+      final bytes = await widget.api.getAvatar();
+      if (mounted && generation == avatarGeneration)
+        setState(() => avatar = bytes);
+    } catch (_) {
+      if (mounted && generation == avatarGeneration)
+        setState(() => avatar = null);
+    }
+  }
+
+  Widget accountAvatar() {
+    final name = displayProfileName(widget.user).trim();
+    final initial = name.isEmpty ? nearbyText('ر', 'R') : name.characters.first;
+    Widget fallback() => Center(
+      child: Text(
+        initial,
+        style: const TextStyle(color: royalGold, fontSize: 20),
+      ),
+    );
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: royalRaised,
+      child: avatar == null
+          ? fallback()
+          : ClipOval(
+              child: Image.memory(
+                avatar!,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (_, error, stack) => fallback(),
+              ),
+            ),
+    );
   }
 
   Future<void> loadFeatured() async {
@@ -78,30 +136,36 @@ class _CustomerHomeState extends State<CustomerHome> {
       color: royalSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: royalLine),
+        side: BorderSide(color: royalGold.withValues(alpha: .35), width: .7),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => LiveBarberProfile(api: widget.api, barber: barber),
+            builder: (_) => LiveBarberProfile(
+              api: widget.api,
+              barber: barber,
+              initialFavorite: widget.savedIds.contains('${barber['id']}'),
+              onFavorite: () => widget.onSave('${barber['id']}'),
+              onService: (service) {
+                Navigator.pop(context);
+                final current = services
+                    .where((s) => s['id'] == service['id'])
+                    .firstOrNull;
+                if (current != null)
+                  widget.onBook(current, NearbySelection(barber: barber));
+                else
+                  widget.onServices();
+              },
+            ),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: ColoredBox(
-                color: royalRaised,
-                child: const Center(
-                  child: Icon(
-                    Icons.content_cut_rounded,
-                    size: 58,
-                    color: royalGold,
-                  ),
-                ),
-              ),
+              child: BarberCoverImage(api: widget.api, barber: barber),
             ),
             Padding(
               padding: const EdgeInsets.all(13),
@@ -371,7 +435,7 @@ class _CustomerHomeState extends State<CustomerHome> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: liveFeatured.isNotEmpty
-                        ? SizedBox(height: 286, child: liveFeaturedCard(b))
+                        ? SizedBox(height: 248, child: liveFeaturedCard(b))
                         : DemoBarberCard(
                             showPreviewLabel: true,
                             barber: b,
@@ -441,383 +505,458 @@ class _CustomerHomeState extends State<CustomerHome> {
               .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    nearbyText('وقت لنفسك', 'Time for yourself'),
-                    style: const TextStyle(color: royalMuted, fontSize: 12),
-                  ),
-                  Text(
-                    '${nearbyText('أهلًا،', 'Hi,')} ${displayProfileName(widget.user).trim().split(RegExp(r'\s+')).first}',
-                    style: const TextStyle(
-                      fontSize: 25,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    nearbyText('حلاقك عندك', 'Your barber, at your door'),
-                    style: const TextStyle(color: royalGold, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            if (widget.onLanguage != null)
-              IconButton(
-                tooltip: tr('تغيير اللغة'),
-                onPressed: widget.onLanguage,
-                icon: const Icon(
-                  Icons.language_rounded,
-                  color: royalGold,
-                  size: 22,
-                ),
-              ),
-            const SizedBox(width: 6),
-            IconButton.filledTonal(
-              onPressed: widget.onAccount,
-              style: IconButton.styleFrom(
-                backgroundColor: royalSurface,
-                foregroundColor: royalGold,
-                side: const BorderSide(color: royalProfileBlue, width: 1.5),
-              ),
-              icon: const Icon(Icons.person_outline_rounded, size: 26),
-            ),
-          ],
-        ),
-        const SizedBox(height: 22),
-        TextField(
-          onChanged: (v) => setState(() => query = v.trim()),
-          decoration: InputDecoration(
-            hintText: nearbyText(
-              'ابحث عن حلاق أو خدمة',
-              'Search barbers or services',
-            ),
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            suffixIcon: IconButton(
-              tooltip: nearbyText(
-                'اختيارات البحث القريب',
-                'Nearby search options',
-              ),
-              onPressed: busy ? null : searchOptions,
-              icon: const Icon(Icons.tune_rounded, color: royalGold),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final item in [
-                ['all', nearbyText('الكل', 'All'), Icons.apps_rounded],
-                [
-                  'hair',
-                  nearbyText('حلاقة', 'Haircut'),
-                  Icons.content_cut_rounded,
-                ],
-                [
-                  'beard',
-                  nearbyText('الذقن', 'Beard'),
-                  Icons.face_retouching_natural_rounded,
-                ],
-                ['vip', 'VIP', Icons.diamond_outlined],
-              ])
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: ChoiceChip(
-                    avatar: Icon(
-                      item[2] as IconData,
-                      size: 16,
-                      color: category == item[0] ? royalBackground : royalMuted,
-                    ),
-                    label: Text(
-                      '${item[1]}',
-                      style: TextStyle(
-                        color: category == item[0]
-                            ? royalBackground
-                            : royalText,
-                      ),
-                    ),
-                    selected: category == item[0],
-                    showCheckmark: false,
-                    onSelected: (_) => setState(() {
-                      category = '${item[0]}';
-                      searched = false;
-                      barbers = [];
-                    }),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (services.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Text(
-              tr('الخدمات هتظهر هنا بعد تجهيزها من الإدارة.'),
-              style: const TextStyle(color: royalMuted),
-            ),
-          ),
-        for (final s in matchingServices)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(displayServiceName(s)),
-            trailing: const Icon(Icons.arrow_forward_rounded, color: royalGold),
-            onTap: () => widget.onService(s),
-          ),
-        heading(
-          nearbyText('حلاقين مميزين', 'Featured barbers'),
-          action: TextButton(
-            onPressed: featuredFailed
-                ? loadFeatured
-                : featured.isEmpty
-                ? null
-                : () => allFeatured(featured),
-            child: Text(
-              featuredFailed
-                  ? nearbyText('جرّب تاني', 'Try again')
-                  : nearbyText('عرض الكل', 'See all'),
-            ),
-          ),
-        ),
-        if (featuredLoading && featured.isEmpty)
-          const LinearProgressIndicator(),
-        if (featured.isNotEmpty)
-          SizedBox(
-            height: 286,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: featured.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (_, i) => liveFeatured.isNotEmpty
-                  ? liveFeaturedCard(featured[i])
-                  : DemoBarberCard(
-                      showPreviewLabel: true,
-                      barber: featured[i],
-                      saved: widget.savedIds.contains(featured[i]['id']),
-                      onOpen: () => widget.onDemo(featured[i]),
-                      onSave: () => widget.onSave('${featured[i]['id']}'),
-                    ),
-            ),
-          )
-        else
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: royalSurface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: royalLine),
-            ),
-            child: Text(
-              featuredFailed
-                  ? nearbyText(
-                      'تعذر تحميل الحلاقين المميزين.',
-                      'Could not load featured barbers.',
-                    )
-                  : nearbyText(
-                      'الحلاقين المميزين هيظهروا هنا لما يكونوا متاحين.',
-                      'Featured barbers will appear here when available.',
-                    ),
-              style: const TextStyle(color: royalMuted, fontSize: 13),
-            ),
-          ),
-        heading(
-          nearbyText('حلاقين قريبين منك', 'Nearby barbers'),
-          action: searched
-              ? Text(
-                  '${visible.length} ${nearbyText('متاح', 'found')}',
-                  style: const TextStyle(color: royalMuted, fontSize: 12),
-                )
-              : IconButton(
-                  tooltip: nearbyText('ابحث عن حلاقين', 'Find barbers'),
-                  onPressed: busy ? null : searchOptions,
-                  icon: const Icon(Icons.tune_rounded, color: royalGold),
-                ),
-        ),
-        if (busy) const LinearProgressIndicator(),
-        if (error.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              error,
-              style: const TextStyle(color: Color(0xffffb4ab)),
-            ),
-          ),
-        if (!searched) ...[
-          Text(
-            nearbyText(
-              'اختار الخدمة والمنطقة، أو استخدم موقعك مرة واحدة.',
-              'Choose a service and area, or use your location once.',
-            ),
-            style: const TextStyle(color: royalMuted, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: busy ? null : searchOptions,
-              icon: const Icon(Icons.near_me_outlined),
-              label: Text(nearbyText('دوّر على حلاقي', 'Find my barber')),
-            ),
-          ),
-        ],
-        if (preview && searched)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              nearbyText(
-                'معاينة للتوفر، مش حجز فعلي.',
-                'Availability preview, not an actual booking.',
-              ),
-              style: const TextStyle(color: royalGold, fontSize: 12),
-            ),
-          ),
-        if (searched && visible.isEmpty)
-          Text(
-            nearbyText(
-              'مفيش حلاقين مطابقين متاحين دلوقتي. جرّب منطقة تانية.',
-              'No matching barbers are available now. Try another area.',
-            ),
-            style: const TextStyle(color: royalMuted, fontSize: 13),
-          ),
-        for (final b in visible)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Material(
-              color: royalSurface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: royalLine),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LiveBarberProfile(
-                      api: widget.api,
-                      barber: b,
-                      onBook: () {
-                        Navigator.pop(context);
-                        widget.onBook(
-                          checkedService!,
-                          NearbySelection(
-                            barber: b,
-                            location: coordinates,
-                            areaId: checkedArea,
-                            checkedAt: checkedAt,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                child: Padding(
+      children:
+          [
+                Container(
                   padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: royalGold.withValues(alpha: .27),
+                      width: .7,
+                    ),
+                    gradient: LinearGradient(
+                      colors: [
+                        royalGold.withValues(alpha: .07),
+                        royalSurface.withValues(alpha: .3),
+                      ],
+                    ),
+                  ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 48,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: royalRaised,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.content_cut_rounded,
-                          color: royalGold,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              appLocale.value.languageCode == 'en'
-                                  ? '${b['nameEn']}'
-                                  : '${b['nameAr']}',
+                              nearbyText('وقت لنفسك', 'Time for yourself'),
                               style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                                color: royalMuted,
+                                fontSize: 12,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            RatingSummary(
-                              rating: ratingFromMap(b),
-                              compact: true,
+                            Text(
+                              '${nearbyText('أهلًا،', 'Hi,')} ${displayProfileName(widget.user).trim().split(RegExp(r'\s+')).first}',
+                              style: const TextStyle(
+                                fontSize: 25,
+                                height: 1.5,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            const SizedBox(height: 5),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 5,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: royalGold.withValues(alpha: .14),
-                                    borderRadius: BorderRadius.circular(7),
-                                  ),
-                                  child: Text(
-                                    nearbyText('متاح', 'Available'),
-                                    style: const TextStyle(
-                                      color: royalGold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                                if (b['approximateDistance'] is Map)
-                                  Text(
-                                    '${b['approximateDistance']['minKm']} - ${b['approximateDistance']['maxKm']} ${nearbyText('كم تقريبًا', 'km approx.')}',
-                                    style: const TextStyle(
-                                      color: royalMuted,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                              ],
-                            ),
+                            const BrandTagline(compact: true),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 36,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: royalGold.withValues(alpha: .16),
-                          borderRadius: BorderRadius.circular(10),
+                      if (widget.onLanguage != null)
+                        IconButton(
+                          tooltip: tr('تغيير اللغة'),
+                          onPressed: widget.onLanguage,
+                          icon: const Icon(
+                            Icons.language_rounded,
+                            color: royalGold,
+                            size: 22,
+                          ),
                         ),
-                        child: Icon(
-                          appLocale.value.languageCode == 'ar'
-                              ? Icons.chevron_left_rounded
-                              : Icons.chevron_right_rounded,
-                          color: royalGold,
+                      const SizedBox(width: 6),
+                      IconButton.filledTonal(
+                        tooltip: nearbyText('حسابي', 'My account'),
+                        onPressed: widget.onAccount,
+                        style: IconButton.styleFrom(
+                          backgroundColor: royalSurface,
+                          foregroundColor: royalGold,
+                          side: const BorderSide(color: royalGold, width: .7),
                         ),
+                        icon: accountAvatar(),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: widget.onServices,
-            child: Text(nearbyText('كل الخدمات', 'All services')),
-          ),
-        ),
-      ],
+                const SizedBox(height: 22),
+                TextField(
+                  onChanged: (v) => setState(() => query = v.trim()),
+                  decoration: InputDecoration(
+                    hintText: nearbyText(
+                      'ابحث عن حلاق أو خدمة',
+                      'Search barbers or services',
+                    ),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    suffixIcon: IconButton(
+                      tooltip: nearbyText(
+                        'اختيارات البحث القريب',
+                        'Nearby search options',
+                      ),
+                      onPressed: busy ? null : searchOptions,
+                      icon: const Icon(Icons.tune_rounded, color: royalGold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _HomeFullBleed(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final item in [
+                          [
+                            'all',
+                            nearbyText('الكل', 'All'),
+                            Icons.apps_rounded,
+                          ],
+                          [
+                            'hair',
+                            nearbyText('حلاقة', 'Haircut'),
+                            Icons.content_cut_rounded,
+                          ],
+                          [
+                            'beard',
+                            nearbyText('الذقن', 'Beard'),
+                            Icons.face_retouching_natural_rounded,
+                          ],
+                          ['vip', 'VIP', Icons.diamond_outlined],
+                        ])
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 8),
+                            child: ChoiceChip(
+                              avatar: Icon(
+                                item[2] as IconData,
+                                size: 16,
+                                color: category == item[0]
+                                    ? royalBackground
+                                    : royalMuted,
+                              ),
+                              label: Text(
+                                '${item[1]}',
+                                style: TextStyle(
+                                  color: category == item[0]
+                                      ? royalBackground
+                                      : royalText,
+                                ),
+                              ),
+                              selected: category == item[0],
+                              showCheckmark: false,
+                              onSelected: (_) => setState(() {
+                                category = '${item[0]}';
+                                searched = false;
+                                barbers = [];
+                              }),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (services.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      tr('الخدمات هتظهر هنا بعد تجهيزها من الإدارة.'),
+                      style: const TextStyle(color: royalMuted),
+                    ),
+                  ),
+                for (final s in matchingServices)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(displayServiceName(s)),
+                    trailing: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: royalGold,
+                    ),
+                    onTap: () => widget.onService(s),
+                  ),
+                heading(
+                  nearbyText('حلاقين مميزين', 'Featured barbers'),
+                  action: TextButton(
+                    onPressed: featuredFailed
+                        ? loadFeatured
+                        : featured.isEmpty
+                        ? null
+                        : () => allFeatured(featured),
+                    child: Text(
+                      featuredFailed
+                          ? nearbyText('جرّب تاني', 'Try again')
+                          : nearbyText('عرض الكل', 'See all'),
+                    ),
+                  ),
+                ),
+                if (featuredLoading && featured.isEmpty)
+                  const LinearProgressIndicator(),
+                if (featured.isNotEmpty)
+                  _HomeFullBleed(
+                    child: SizedBox(
+                      height: 248,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: featured.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 14),
+                        itemBuilder: (_, i) => liveFeatured.isNotEmpty
+                            ? liveFeaturedCard(featured[i])
+                            : DemoBarberCard(
+                                showPreviewLabel: true,
+                                barber: featured[i],
+                                saved: widget.savedIds.contains(
+                                  featured[i]['id'],
+                                ),
+                                onOpen: () => widget.onDemo(featured[i]),
+                                onSave: () =>
+                                    widget.onSave('${featured[i]['id']}'),
+                              ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: royalSurface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: royalLine),
+                    ),
+                    child: Text(
+                      featuredFailed
+                          ? nearbyText(
+                              'تعذر تحميل الحلاقين المميزين.',
+                              'Could not load featured barbers.',
+                            )
+                          : nearbyText(
+                              'الحلاقين المميزين هيظهروا هنا لما يكونوا متاحين.',
+                              'Featured barbers will appear here when available.',
+                            ),
+                      style: const TextStyle(color: royalMuted, fontSize: 13),
+                    ),
+                  ),
+                heading(
+                  nearbyText('حلاقين قريبين منك', 'Nearby barbers'),
+                  action: searched
+                      ? Text(
+                          '${visible.length} ${nearbyText('متاح', 'found')}',
+                          style: const TextStyle(
+                            color: royalMuted,
+                            fontSize: 12,
+                          ),
+                        )
+                      : IconButton(
+                          tooltip: nearbyText('ابحث عن حلاقين', 'Find barbers'),
+                          onPressed: busy ? null : searchOptions,
+                          icon: const Icon(
+                            Icons.tune_rounded,
+                            color: royalGold,
+                          ),
+                        ),
+                ),
+                if (busy) const LinearProgressIndicator(),
+                if (error.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      error,
+                      style: const TextStyle(color: Color(0xffffb4ab)),
+                    ),
+                  ),
+                if (!searched) ...[
+                  Text(
+                    nearbyText(
+                      'اختار الخدمة والمنطقة، أو استخدم موقعك مرة واحدة.',
+                      'Choose a service and area, or use your location once.',
+                    ),
+                    style: const TextStyle(color: royalMuted, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: busy ? null : searchOptions,
+                      icon: const Icon(Icons.near_me_outlined),
+                      label: Text(
+                        nearbyText('دوّر على حلاقي', 'Find my barber'),
+                      ),
+                    ),
+                  ),
+                ],
+                if (preview && searched)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      nearbyText(
+                        'معاينة للتوفر، مش حجز فعلي.',
+                        'Availability preview, not an actual booking.',
+                      ),
+                      style: const TextStyle(color: royalGold, fontSize: 12),
+                    ),
+                  ),
+                if (searched && visible.isEmpty)
+                  Text(
+                    nearbyText(
+                      'مفيش حلاقين مطابقين متاحين دلوقتي. جرّب منطقة تانية.',
+                      'No matching barbers are available now. Try another area.',
+                    ),
+                    style: const TextStyle(color: royalMuted, fontSize: 13),
+                  ),
+                for (final b in visible)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Material(
+                      color: royalSurface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: royalGold.withValues(alpha: .35),
+                          width: .7,
+                        ),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LiveBarberProfile(
+                              api: widget.api,
+                              barber: b,
+                              initialFavorite: widget.savedIds.contains(
+                                '${b['id']}',
+                              ),
+                              onFavorite: () => widget.onSave('${b['id']}'),
+                              onBook: () {
+                                Navigator.pop(context);
+                                widget.onBook(
+                                  checkedService!,
+                                  NearbySelection(
+                                    barber: b,
+                                    location: coordinates,
+                                    areaId: checkedArea,
+                                    checkedAt: checkedAt,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: royalRaised,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: BarberCoverImage(
+                                    api: widget.api,
+                                    barber: b,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      appLocale.value.languageCode == 'en'
+                                          ? '${b['nameEn']}'
+                                          : '${b['nameAr']}',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    RatingSummary(
+                                      rating: ratingFromMap(b),
+                                      compact: true,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 5,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: royalGold.withValues(
+                                              alpha: .14,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              7,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            nearbyText('متاح', 'Available'),
+                                            style: const TextStyle(
+                                              color: royalGold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        if (b['approximateDistance'] is Map)
+                                          Text(
+                                            '${b['approximateDistance']['minKm']} - ${b['approximateDistance']['maxKm']} ${nearbyText('كم تقريبًا', 'km approx.')}',
+                                            style: const TextStyle(
+                                              color: royalMuted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 36,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: royalGold.withValues(alpha: .16),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  appLocale.value.languageCode == 'ar'
+                                      ? Icons.chevron_left_rounded
+                                      : Icons.chevron_right_rounded,
+                                  color: royalGold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: widget.onServices,
+                    child: Text(nearbyText('كل الخدمات', 'All services')),
+                  ),
+                ),
+              ]
+              .map(
+                (child) => child is _HomeFullBleed
+                    ? child
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: child,
+                      ),
+              )
+              .toList(),
     );
   }
+}
+
+class _HomeFullBleed extends StatelessWidget {
+  final Widget child;
+  const _HomeFullBleed({required this.child});
+  @override
+  Widget build(BuildContext context) =>
+      SizedBox(width: double.infinity, child: child);
 }

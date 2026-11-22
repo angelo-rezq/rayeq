@@ -1,0 +1,8 @@
+{
+  "https://rayeq-platform.onrender.com/api/v1/barber-portraits/ee062ce8-cac2-491e-8cf3-2077f3be3815?v=4": "test/fixtures/media/0.webp",
+  "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000601": "test/fixtures/media/1.webp",
+  "https://rayeq-platform.onrender.com/api/v1/barber-portraits/d0e00000-0000-4000-8000-000000000202?v=1": "test/fixtures/media/2.webp",
+  "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000602": "test/fixtures/media/3.webp",
+  "https://rayeq-platform.onrender.com/api/v1/barber-portraits/d0e00000-0000-4000-8000-000000000203?v=1": "test/fixtures/media/4.webp",
+  "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000603": "test/fixtures/media/5.webp"
+}

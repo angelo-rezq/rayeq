@@ -1,3 +1,5 @@
+import 'forms_review_test.dart' show capture;
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -105,6 +107,23 @@ void main() {
               .writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
+        if (screen == 'privacy') {
+          final heading = find.text(
+            language == 'en' ? 'Profiles and bios' : 'الملفات والنبذة',
+          );
+          await tester.scrollUntilVisible(
+            heading,
+            300,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await Scrollable.ensureVisible(
+            tester.element(heading),
+            alignment: .2,
+          );
+          await tester.pumpAndSettle();
+          await capture(tester, boundaryKey, 'build3-privacy-bios-$language');
+          expect(tester.takeException(), isNull);
+        }
         navigatorKey.currentState!.pop();
         await tester.pumpAndSettle();
         await tester.pumpWidget(const SizedBox.shrink());

@@ -235,10 +235,27 @@ class RayeqApi {
   Future<Map<String, dynamic>> uploadWorkPhoto(
     Uint8List bytes,
     String contentType,
+  ) => _uploadPublicImage(bytes, contentType, 'POST', 'worker/gallery');
+
+  Future<Map<String, dynamic>> uploadPublicPortrait(
+    Uint8List bytes,
+    String contentType,
+  ) => _uploadPublicImage(
+    bytes,
+    contentType,
+    'PUT',
+    'worker/public-profile/portrait',
+  );
+
+  Future<Map<String, dynamic>> _uploadPublicImage(
+    Uint8List bytes,
+    String contentType,
+    String method,
+    String path,
   ) async {
     if (bytes.length > 5 * 1024 * 1024)
       throw const ApiFailure('PHOTO_TOO_LARGE', 'الصورة أكبر من ٥ ميجا.');
-    final req = http.Request('POST', _url('worker/gallery'));
+    final req = http.Request(method, _url(path));
     req.headers['Content-Type'] = contentType;
     req.headers['Accept'] = 'application/json';
     if (_token != null) req.headers['Authorization'] = 'Bearer $_token';

@@ -1,3 +1,5 @@
+import 'nearby.dart' show nearbyText;
+import 'worker_public_profile.dart';
 import 'barber_profiles.dart';
 import 'about.dart';
 import 'localization.dart';
@@ -150,6 +152,79 @@ class _ProfilePanelState extends State<ProfilePanel> {
       if (mounted) setState(() => error = e.message);
     } catch (_) {
       if (mounted) setState(() => error = 'تعذر حفظ التغييرات.');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  String get bioNotice => nearbyText(
+    'اختياري. النبذة بتظهر للحلاق في حجزك وللإدارة.',
+    'Optional. Your barber can see this on your booking, and admins can see it.',
+  );
+
+  Future<void> editBio() async {
+    final input = TextEditingController(text: '${profile['bio'] ?? ''}');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(nearbyText('نبذة عنك', 'Your bio')),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  bioNotice,
+                  style: const TextStyle(color: royalMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: input,
+                  minLines: 4,
+                  maxLines: 8,
+                  maxLength: 1500,
+                  decoration: InputDecoration(
+                    labelText: nearbyText('نبذة عنك', 'About you'),
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(nearbyText('رجوع', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, input.text.trim()),
+            child: Text(nearbyText('حفظ', 'Save')),
+          ),
+        ],
+      ),
+    );
+    Future<void>.delayed(const Duration(milliseconds: 350), input.dispose);
+    if (result == null || !mounted) return;
+    setState(() {
+      busy = true;
+      error = '';
+    });
+    try {
+      await widget.api.patch('profile', {'bio': result});
+      await load();
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(nearbyText('اتحفظت النبذة.', 'Bio saved.'))),
+        );
+    } catch (e) {
+      if (mounted)
+        setState(
+          () => error = e is ApiFailure
+              ? e.message
+              : nearbyText('تعذر حفظ النبذة.', 'Could not save your bio.'),
+        );
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -372,7 +447,40 @@ class _ProfilePanelState extends State<ProfilePanel> {
             ],
           ),
         ),
-        if (role == 'worker') card(WorkerPortfolioCard(api: widget.api)),
+        if (role == 'customer')
+          card(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nearbyText('نبذة عنك', 'Your bio'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  bioNotice,
+                  style: const TextStyle(color: royalMuted, fontSize: 12),
+                ),
+                if ('${profile['bio'] ?? ''}'.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${profile['bio']}',
+                    style: const TextStyle(color: royalMuted),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                if (ready)
+                  OutlinedButton(
+                    onPressed: busy ? null : editBio,
+                    child: Text(nearbyText('تعديل النبذة', 'Edit bio')),
+                  ),
+              ],
+            ),
+          ),
+        if (role == 'worker') ...[
+          card(WorkerPublicProfileCard(api: widget.api)),
+          card(WorkerPortfolioCard(api: widget.api)),
+        ],
         if (employee)
           card(
             Column(

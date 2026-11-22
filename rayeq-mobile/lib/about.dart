@@ -36,7 +36,10 @@ class AboutRayeq extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    aboutText('حلاقك عندك', 'Your barber, at your door'),
+                    aboutText(
+                      'حلاقك لحد باب بيتك',
+                      'Your barber, at your door',
+                    ),
                     style: const TextStyle(color: royalGold, fontSize: 13),
                   ),
                   const SizedBox(height: 22),
@@ -169,6 +172,13 @@ class PrivacyPolicy extends StatelessWidget {
                 'Using visit details',
                 'بيانات الزيارة بتظهر للإدارة وللحلاق اللي بتتسند له، بالقدر اللازم لتنظيم الخدمة والتواصل بخصوصها. حسابات الحلاقين بتحتاج موافقة الإدارة قبل استلام زيارات. الخدمات التقنية اللي بتشغّل التطبيق والبريد بتتعامل مع البيانات اللازمة لتشغيل الخدمة.',
                 'Visit details are available to the admin team and assigned barber as needed to organise the service and communicate about it. Barber accounts need approval before receiving visits. The services that host the app and deliver email process the information needed to operate it.',
+              ),
+              section(
+                Icons.badge_outlined,
+                'الملفات والنبذة',
+                'Profiles and bios',
+                'نبذة حساب العميل اختيارية، وبتظهر للحلاق المسند للحجز وللإدارة. ملف الحلاق اللي بيظهر للعملاء يشمل صورته ونبذته وخبرته وتخصصاته وخدماته وصور أعماله. متضيفش عنوانك الخاص أو بيانات تواصل شخصية في ملف الحلاق.',
+                'A customer account bio is optional and is shown to the assigned barber and admins. Customer-facing barber profiles include the portrait, bio, experience, specialties, services and work photos. Do not add a private address or personal contact information to a barber profile.',
               ),
               section(
                 Icons.phone_android_rounded,

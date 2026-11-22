@@ -1,3 +1,5 @@
+import 'saved_barbers.dart';
+import 'brand.dart';
 import 'customer_home.dart';
 import 'about.dart';
 import 'nearby.dart';
@@ -235,6 +237,15 @@ class _LiveShellState extends State<LiveShell> {
     final barbers = previewFixturesEnabled && catalog?['isDemo'] == true
         ? demoBarbers.where((b) => savedIds.contains(b['id'])).toList()
         : <Map<String, dynamic>>[];
+    final publicIds =
+        savedIds
+            .where(
+              (id) =>
+                  !services.any((s) => s['id'] == id) &&
+                  !barbers.any((b) => b['id'] == id),
+            )
+            .toList()
+          ..sort();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -242,8 +253,10 @@ class _LiveShellState extends State<LiveShell> {
           'المحفوظات',
           'محفوظة على الجهاز ده فقط، ومش بتحدد العامل المسند ليك.',
         ),
-        if (services.isEmpty && barbers.isEmpty)
+        if (services.isEmpty && barbers.isEmpty && publicIds.isEmpty)
           box(Text(tr('احفظ خدماتك وحلاقينك المفضلين بعلامة القلب.'))),
+        if (publicIds.isNotEmpty)
+          SavedPublicBarbers(api: api, ids: publicIds, onSave: toggleSaved),
         for (final s in services)
           box(
             ListTile(
@@ -444,23 +457,6 @@ class _LiveShellState extends State<LiveShell> {
               titleSpacing: 24,
               title: Row(
                 children: [
-                  Container(
-                    width: 39,
-                    height: 39,
-                    decoration: BoxDecoration(
-                      color: royalGold.withValues(alpha: .10),
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(
-                        color: royalGold.withValues(alpha: .35),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.content_cut_rounded,
-                      color: royalGold,
-                      size: 20,
-                    ),
-                  ),
-                  SizedBox(width: 11),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,7 +473,7 @@ class _LiveShellState extends State<LiveShell> {
                           ),
                         ),
                         Text(
-                          tr('حلاقك عندك'),
+                          tr('حلاقك لحد باب بيتك'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 12, color: royalMuted),
@@ -551,7 +547,9 @@ class _LiveShellState extends State<LiveShell> {
               key: ValueKey('$screen:$tab'),
               padding: authPage
                   ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
-                  : const EdgeInsets.fromLTRB(24, 18, 24, 56),
+                  : user?['role'] == 'customer' && tab == 0
+                  ? const EdgeInsets.fromLTRB(0, 18, 0, 56)
+                  : const EdgeInsets.fromLTRB(20, 18, 20, 56),
               children: [
                 if (busy) LinearProgressIndicator(),
                 if (error.isNotEmpty) RoyalNotice(message: error, error: true),
@@ -577,7 +575,7 @@ class _LiveShellState extends State<LiveShell> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          tr('حلاقك عندك'),
+                          tr('حلاقك لحد باب بيتك'),
                           style: const TextStyle(
                             color: royalGold,
                             fontSize: 12,
@@ -725,55 +723,39 @@ class _LiveShellState extends State<LiveShell> {
                       ],
                     ),
                     Spacer(),
-                    Center(
-                      child: Container(
-                        width: splash ? 104 : 166,
-                        height: splash ? 104 : 166,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: royalGold.withValues(alpha: .08),
-                          border: Border.all(
-                            color: royalGold.withValues(alpha: .4),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (first ? royalGold : royalGold).withValues(
-                                alpha: .15,
-                              ),
-                              blurRadius: 70,
-                              spreadRadius: 25,
+                    if (splash)
+                      const Center(child: RayeqBrandLockup())
+                    else
+                      Center(
+                        child: Container(
+                          width: splash ? 104 : 166,
+                          height: splash ? 104 : 166,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: royalGold.withValues(alpha: .08),
+                            border: Border.all(
+                              color: royalGold.withValues(alpha: .4),
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          splash || first
-                              ? Icons.content_cut
-                              : Icons.calendar_month_outlined,
-                          size: splash ? 46 : 65,
-                          color: first || splash ? royalGold : royalGold,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 30),
-                    if (splash) ...[
-                      Center(
-                        child: Text(
-                          tr('رايق'),
-                          style: TextStyle(
-                            fontSize: 58,
-                            color: royalGold,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 3,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (first ? royalGold : royalGold)
+                                    .withValues(alpha: .15),
+                                blurRadius: 70,
+                                spreadRadius: 25,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            splash || first
+                                ? Icons.content_cut
+                                : Icons.calendar_month_outlined,
+                            size: splash ? 46 : 65,
+                            color: first || splash ? royalGold : royalGold,
                           ),
                         ),
                       ),
-                      Center(
-                        child: Text(
-                          tr('حلاقك عندك'),
-                          style: TextStyle(color: royalMuted, fontSize: 14),
-                        ),
-                      ),
-                    ] else ...[
+                    SizedBox(height: 30),
+                    if (!splash) ...[
                       SizedBox(height: 50),
                       Text(
                         tr(first ? '1 / 2' : '2 / 2'),
@@ -1298,7 +1280,7 @@ class _LiveShellState extends State<LiveShell> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        tr('حلاقك عندك.\nعلى راحتك.'),
+                        tr('حلاقك لحد باب بيتك'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 27,
@@ -1539,6 +1521,11 @@ class _LiveShellState extends State<LiveShell> {
   Widget bookingCard(Map<String, dynamic> raw, {bool employee = false}) {
     final b = bookingForDisplay(raw, preview: previewAccount(user));
     final address = b['address'] as Map? ?? {};
+    final customer = b['customerProfile'] is Map
+        ? b['customerProfile'] as Map
+        : const {};
+    final customerBio = '${customer['bio'] ?? ''}'.trim();
+    final customerName = '${customer['name'] ?? ''}'.trim();
     Widget line(IconData icon, String text) => Padding(
       padding: const EdgeInsets.only(top: 11),
       child: Row(
@@ -1601,6 +1588,33 @@ class _LiveShellState extends State<LiveShell> {
           ),
           if (employee) ...[
             line(Icons.person_outline_rounded, displayCustomerName(b)),
+            if (customerName.isNotEmpty &&
+                customerName != displayCustomerName(b))
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 27, top: 8),
+                child: Text(
+                  '${nearbyText('صاحب الحساب', 'Account holder')}: $customerName',
+                  style: const TextStyle(color: royalMuted, fontSize: 12),
+                ),
+              ),
+            if (customerBio.isNotEmpty)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 27, top: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nearbyText('نبذة صاحب الحساب', 'Account holder bio'),
+                      style: const TextStyle(color: royalGold, fontSize: 12),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      customerBio,
+                      style: const TextStyle(color: royalMuted, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
             line(
               Icons.home_outlined,
               '${displayAddress(address, 'street')}${'${address['building'] ?? ''}'.isEmpty ? '' : ', ${address['building']}'}',
@@ -2199,7 +2213,7 @@ class _BookingFormState extends State<BookingForm> {
                         )
                         .toList(),
                     onChanged: (v) => setState(() {
-                      if (areaId != v && preferred != null) {
+                      if (areaId != null && areaId != v && preferred != null) {
                         preferred = null;
                         error = 'المنطقة اتغيرت. اختار الحلاق تاني لو حابب.';
                       }

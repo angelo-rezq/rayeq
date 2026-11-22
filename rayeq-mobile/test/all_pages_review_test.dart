@@ -188,6 +188,12 @@ void main() {
           ..addFont(rootBundle.load('assets/fonts/PlexArabic-600.ttf')))
         .load();
     await (FontLoader(
+      'BrandArabic',
+    )..addFont(rootBundle.load('assets/fonts/BrandArabic.ttf'))).load();
+    await (FontLoader(
+      'BrandLatin',
+    )..addFont(rootBundle.load('assets/fonts/BrandLatin.ttf'))).load();
+    await (FontLoader(
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
     await t.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
@@ -210,6 +216,18 @@ void main() {
     await t.pumpAndSettle();
     Future<void> shot(GlobalKey key, String name) async {
       expect(t.takeException(), isNull, reason: name);
+      if (appLocale.value.languageCode == 'en') {
+        final arabicTexts = t
+            .widgetList<Text>(find.byType(Text))
+            .map((w) => w.data ?? w.textSpan?.toPlainText() ?? '')
+            .where((text) => RegExp(r'[\u0600-\u06ff]').hasMatch(text))
+            .toList();
+        expect(
+          arabicTexts,
+          isEmpty,
+          reason: 'English UI must not fall back to Arabic in $name',
+        );
+      }
       await capture(t, key, name);
     }
 

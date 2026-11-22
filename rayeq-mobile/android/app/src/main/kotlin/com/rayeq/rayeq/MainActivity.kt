@@ -21,6 +21,15 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(engine)
         MethodChannel(engine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
             when (call.method) {
+                "shareProfile" -> {
+                    try {
+                        val text = call.argument<String>("text") ?: ""
+                        require(text.isNotBlank() && text.length <= 6000)
+                        val share = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+                        startActivity(Intent.createChooser(share, call.argument<String>("title") ?: "Rayeq"))
+                        result.success("opened")
+                    } catch (_: Exception) { result.error("SHARE_FAILED", "Sharing could not open", null) }
+                }
                 "installedBuild" -> result.success(buildCode(packageManager.getPackageInfo(packageName, 0)))
                 "downloadUpdate" -> {
                     val url = call.argument<String>("url") ?: ""

@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Base64
 
 plugins {
@@ -41,11 +42,24 @@ android {
         jniLibs.useLegacyPackaging = true
         jniLibs.excludes += setOf("**/x86_64/**", "**/armeabi-v7a/**")
     }
+    val releaseStore = System.getenv("RAYEQ_STORE_FILE")
+    val releasePasswordFile = System.getenv("RAYEQ_STORE_PASSWORD_FILE")
+    require((releaseStore == null) == (releasePasswordFile == null)) {
+        "Set both RAYEQ_STORE_FILE and RAYEQ_STORE_PASSWORD_FILE, or neither for an unsigned artifact."
+    }
+    if (releaseStore != null && releasePasswordFile != null) {
+        signingConfigs.create("rayeqRelease") {
+            storeFile = File(releaseStore)
+            storePassword = File(releasePasswordFile).readText().trimEnd('\n', '\r')
+            keyAlias = "rayeq"
+            keyPassword = storePassword
+            storeType = "PKCS12"
+        }
+    }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Never ship a development key. Without the private inputs this is unsigned.
+            signingConfig = signingConfigs.findByName("rayeqRelease")
         }
     }
 }

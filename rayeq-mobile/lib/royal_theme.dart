@@ -146,7 +146,7 @@ class RoyalBackdrop extends StatelessWidget {
       gradient: RadialGradient(
         center: Alignment.topLeft,
         radius: 1.5,
-        colors: [Color(0xff282216), royalBackground],
+        colors: [Color(0xff332a18), Color(0xff151415)],
         stops: [0, 0.65],
       ),
     ),
@@ -159,7 +159,7 @@ Widget rayeqBackdrop(BuildContext context, Widget? child) => DecoratedBox(
     gradient: LinearGradient(
       begin: Alignment.topRight,
       end: Alignment.bottomLeft,
-      colors: [Color(0xff201c13), Color(0xff131316), royalBackground],
+      colors: [Color(0xff302718), Color(0xff211d16), Color(0xff151416)],
       stops: [0, .48, 1],
     ),
   ),
@@ -168,7 +168,7 @@ Widget rayeqBackdrop(BuildContext context, Widget? child) => DecoratedBox(
       gradient: RadialGradient(
         center: const Alignment(.9, -.8),
         radius: 1.4,
-        colors: [royalGold.withValues(alpha: .055), Colors.transparent],
+        colors: [royalGold.withValues(alpha: .09), Colors.transparent],
         stops: const [0, 1],
       ),
     ),

@@ -1,0 +1,196 @@
+{
+  "barbers/ee062ce8-cac2-491e-8cf3-2077f3be3815": {
+    "id": "ee062ce8-cac2-491e-8cf3-2077f3be3815",
+    "nameAr": "أحمد حسن",
+    "nameEn": "Ahmed Hassan",
+    "ratingAverage": 5,
+    "reviewCount": 1,
+    "demoOnly": true,
+    "titleAr": "حلاق تجريبي",
+    "titleEn": "Demo barber",
+    "bioAr": "ملف نموذجي للعرض فقط. الصورة والخبرة والتخصصات بيانات تجريبية، وليست سيرة مهنية أو خبرة حقيقية لصاحب الصورة.",
+    "bioEn": "Demonstration profile only. The stock portrait, experience and specialties are fictional presentation data, not the pictured person’s real work history.",
+    "yearsExperience": 6,
+    "specialtiesAr": [
+      "قص الشعر",
+      "تهذيب اللحية"
+    ],
+    "specialtiesEn": [
+      "Haircuts",
+      "Beard grooming"
+    ],
+    "portraitUrl": "https://rayeq-platform.onrender.com/api/v1/barber-portraits/ee062ce8-cac2-491e-8cf3-2077f3be3815?v=4",
+    "areaNameAr": "حي النخيل",
+    "areaNameEn": "Al Nakheel District",
+    "serviceAreas": [
+      {
+        "id": "d0e00000-0000-4000-8000-000000000101",
+        "nameAr": "حي النخيل",
+        "nameEn": "Al Nakheel District"
+      }
+    ],
+    "services": [
+      {
+        "id": "d0e00000-0000-4000-8000-000000000002",
+        "nameAr": "تهذيب وتحديد الدقن",
+        "nameEn": "Beard trim & shape",
+        "descriptionAr": "تحديد دقيق وتهذيب يناسب شكل وشك.",
+        "descriptionEn": "A precise beard trim shaped to suit your face.",
+        "priceMinor": 10000,
+        "durationMinutes": 20,
+        "currency": "EGP",
+        "priceExcludesTravel": true
+      },
+      {
+        "id": "d0e00000-0000-4000-8000-000000000001",
+        "nameAr": "حلاقة وتصفيف",
+        "nameEn": "Haircut & styling",
+        "descriptionAr": "قصة شعر متظبطة ولمسة نهائية على ذوقك.",
+        "descriptionEn": "A tailored haircut with a clean finishing touch.",
+        "priceMinor": 20000,
+        "durationMinutes": 30,
+        "currency": "EGP",
+        "priceExcludesTravel": true
+      }
+    ],
+    "startingPriceMinor": 10000,
+    "currency": "EGP",
+    "priceExcludesTravel": true,
+    "gallery": {
+      "items": [
+        {
+          "id": "d0e00000-0000-4000-8000-000000000601",
+          "url": "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000601",
+          "width": 445,
+          "height": 900,
+          "byteSize": 73808,
+          "createdAt": "2026-11-22T17:26:56.623Z",
+          "demoOnly": true
+        }
+      ],
+      "maxPhotos": 6
+    }
+  },
+  "barbers/ee062ce8-cac2-491e-8cf3-2077f3be3815/reviews": {
+    "items": [
+      {
+        "id": "d0e00000-0000-4000-8000-000000000501",
+        "rating": 5,
+        "text": "تقييم تجريبي لعرض شكل المراجعات، وليس تجربة عميل حقيقية.",
+        "customerDisplayName": "عميل تجريبي",
+        "createdAt": "2026-11-22T17:09:22.448Z",
+        "demoOnly": true
+      }
+    ],
+    "nextCursor": null,
+    "ratingAverage": 5,
+    "reviewCount": 1
+  },
+  "barbers/ee062ce8-cac2-491e-8cf3-2077f3be3815/gallery": {
+    "items": [
+      {
+        "id": "d0e00000-0000-4000-8000-000000000601",
+        "url": "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000601",
+        "width": 445,
+        "height": 900,
+        "byteSize": 73808,
+        "createdAt": "2026-11-22T17:26:56.623Z",
+        "demoOnly": true
+      }
+    ],
+    "maxPhotos": 6
+  },
+  "barbers/featured": {
+    "items": [
+      {
+        "id": "ee062ce8-cac2-491e-8cf3-2077f3be3815",
+        "nameAr": "أحمد حسن",
+        "nameEn": "Ahmed Hassan",
+        "ratingAverage": 5,
+        "reviewCount": 1,
+        "portraitUrl": "https://rayeq-platform.onrender.com/api/v1/barber-portraits/ee062ce8-cac2-491e-8cf3-2077f3be3815?v=4",
+        "galleryThumbnailUrl": "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000601",
+        "demoOnly": true
+      },
+      {
+        "id": "d0e00000-0000-4000-8000-000000000202",
+        "nameAr": "عمر عادل",
+        "nameEn": "Omar Adel",
+        "ratingAverage": null,
+        "reviewCount": 0,
+        "portraitUrl": "https://rayeq-platform.onrender.com/api/v1/barber-portraits/d0e00000-0000-4000-8000-000000000202?v=1",
+        "galleryThumbnailUrl": "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000602",
+        "demoOnly": true
+      },
+      {
+        "id": "d0e00000-0000-4000-8000-000000000203",
+        "nameAr": "يوسف محمود",
+        "nameEn": "Youssef Mahmoud",
+        "ratingAverage": null,
+        "reviewCount": 0,
+        "portraitUrl": "https://rayeq-platform.onrender.com/api/v1/barber-portraits/d0e00000-0000-4000-8000-000000000203?v=1",
+        "galleryThumbnailUrl": "https://rayeq-platform.onrender.com/api/v1/work-photos/d0e00000-0000-4000-8000-000000000603",
+        "demoOnly": true
+      }
+    ]
+  },
+  "catalog": {
+    "brand": {
+      "nameAr": "رايق",
+      "nameEn": "Rayeq",
+      "taglineAr": "حلاقك عندك"
+    },
+    "currency": "EGP",
+    "timezone": "Africa/Cairo",
+    "intakeEnabled": true,
+    "isDemo": true,
+    "demoOnly": true,
+    "services": [
+      {
+        "id": "d0e00000-0000-4000-8000-000000000002",
+        "nameAr": "تهذيب وتحديد الدقن",
+        "nameEn": "Beard trim & shape",
+        "descriptionAr": "تحديد دقيق وتهذيب يناسب شكل وشك.",
+        "descriptionEn": "A precise beard trim shaped to suit your face.",
+        "category": "العناية بالدقن",
+        "categoryEn": "Beard care",
+        "englishReady": true,
+        "durationMinutes": 20,
+        "priceMinor": 10000,
+        "version": 5,
+        "active": true,
+        "imageUrl": "https://rayeq-platform.onrender.com/mobile-demo/assets/assets/images/grooming.webp"
+      },
+      {
+        "id": "d0e00000-0000-4000-8000-000000000001",
+        "nameAr": "حلاقة وتصفيف",
+        "nameEn": "Haircut & styling",
+        "descriptionAr": "قصة شعر متظبطة ولمسة نهائية على ذوقك.",
+        "descriptionEn": "A tailored haircut with a clean finishing touch.",
+        "category": "العناية بالشعر",
+        "categoryEn": "Hair care",
+        "englishReady": true,
+        "durationMinutes": 30,
+        "priceMinor": 20000,
+        "version": 6,
+        "active": true,
+        "imageUrl": "https://rayeq-platform.onrender.com/mobile-demo/assets/assets/images/grooming.webp"
+      }
+    ],
+    "areas": [
+      {
+        "id": "d0e00000-0000-4000-8000-000000000101",
+        "nameAr": "حي النخيل",
+        "nameEn": "Al Nakheel District",
+        "englishReady": true,
+        "travelFeeMinor": 0,
+        "version": 4,
+        "active": true
+      }
+    ],
+    "support": {},
+    "instapayAvailable": false,
+    "instapayInstructions": null,
+    "cancellationPolicyAr": "سياسة تجريبية: يمكن إلغاء الطلب قبل تأكيد التعيين فقط، دون رسوم. بعد ذلك تواصل مع الإدارة."
+  }
+}
