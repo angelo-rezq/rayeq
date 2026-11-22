@@ -25,7 +25,7 @@ async function main(){console.log(JSON.stringify(await tx(async db=>{
   if((await db.query('SELECT id FROM rayeq_payroll WHERE employee_id=$1 LIMIT 1',[m.employeeId])).rowCount)throw Error('Payroll exists; inspect before removing pilot employee');
   if((await db.query("SELECT id FROM rayeq_bookings WHERE (customer_id=$1 OR employee_id=$2) AND COALESCE(document->>'demoSeed','')<>$3 LIMIT 1",[m.customerId,m.employeeId,seedId])).rowCount)throw Error('Other bookings exist; inspect before removing pilot accounts');
  }
- const report={dryRun:!confirm,seedId,bookings:ids.length,services:m.serviceIds.length,areas:m.areaIds.length,removeTestAccounts:removeAccounts,testAccounts:removeAccounts?users.length:0,testEmployees:employeeCount,cleanLaunch,publicIntakeAfter:false,isDemoAfter:cleanLaunch?false:c.isDemo,auditHistoryRetained:true};
+ const report={dryRun:!confirm,seedId,bookings:ids.length,nearbyPreviews:Array.isArray(m.nearbyBarbers)?m.nearbyBarbers.length:0,services:m.serviceIds.length,areas:m.areaIds.length,removeTestAccounts:removeAccounts,testAccounts:removeAccounts?users.length:0,testEmployees:employeeCount,cleanLaunch,publicIntakeAfter:false,isDemoAfter:cleanLaunch?false:c.isDemo,auditHistoryRetained:true};
  if(!confirm)return report;
  c.intakeEnabled=false;delete c.demoPilot;if(cleanLaunch)c.isDemo=false;
  await db.query('DELETE FROM rayeq_idempotency WHERE booking_id=ANY($1::uuid[])',[ids]);
