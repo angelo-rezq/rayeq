@@ -15,7 +15,7 @@ flutter build apk --release --target-platform android-arm64 \
   --dart-define=UPDATE_DOWNLOAD_HOST=rayeq-releases.onrender.com
 ```
 
-Package `com.rayeq.rayeq`. Source version `1.1.1+3`. ARM64-only, target SDK 36. Native libraries use legacy extraction. The build-3 APK has not yet been compiled or approved in this source checkpoint.
+Package `com.rayeq.rayeq`. Source version `1.1.1+3`. ARM64-only, target SDK 36. Native libraries use legacy extraction. Build 3 was approved and compiled as a signed ARM64 APK. Package, version, APK v2 signature, ZIP integrity/alignment and the retained build-2 certificate were verified. Real-device installation and upgrade remain untested.
 
 PREVIEW_FIXTURES defaults to false. Add `--dart-define=PREVIEW_FIXTURES=true` only for the requested review build. It enables labelled demo profiles and known bilingual samples. It never deletes backend data. The web review build opens a labelled customer/worker/auth screen index with an isolated sample adapter. Native builds open the connected app, not that index.
 
@@ -60,4 +60,4 @@ The optional period is 48 hours from publication, followed by the required-updat
 
 Automated tests cover transport/session behavior, role boundaries, preview isolation, language/layout, update grace/offline behavior, booking rechecks, independent public-profile loading, editable worker fields, raw portrait upload, customer account bio save/clear and worker-only booking display, saved public profiles and native share content. Visual tests render 320, 390 and 430px app layouts in Arabic and English; screenshots are written under the temporary rayeq-visual-review folder.
 
-A passing suite is not a real-device or full live-service acceptance test. This source checkpoint still requires native build-3 compilation/signature verification, device install/upgrade testing, and a native-device smoke test of profile editing. The current screenshot gate must be approved before the APK stage. Free-tier backend cold starts can delay live responses.
+A passing suite is not a real-device or full live-service acceptance test. Build-3 native compilation and static package/signature checks passed after screenshot approval. Device install/upgrade testing and native-device smoke tests of profile editing and sharing remain required. Free-tier backend cold starts can delay live responses.
