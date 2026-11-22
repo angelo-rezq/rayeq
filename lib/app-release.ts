@@ -1,7 +1,10 @@
 import {z} from 'zod';
 import configuredRelease from '../config/app-release.json';
 
+const utcTimestamp=z.string().datetime({offset:false});
 export const appReleaseSchema=z.object({
+ publishedAt:utcTimestamp,
+ mandatoryAfter:utcTimestamp.optional(),
  latestBuild:z.number().int().min(1).max(2100000000),
  latestVersion:z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/).max(100),
  minSupportedBuild:z.number().int().min(1),
@@ -9,9 +12,9 @@ export const appReleaseSchema=z.object({
  sha256:z.string().regex(/^[a-f0-9]{64}$/),
  releaseNotesAr:z.string().trim().min(1).max(4000),
  releaseNotesEn:z.string().trim().min(1).max(4000).optional()
-}).strict().refine(value=>value.minSupportedBuild<=value.latestBuild,{message:'Minimum supported build cannot exceed latest build'});
+}).strict().refine(value=>value.minSupportedBuild<=value.latestBuild,{message:'Minimum supported build cannot exceed latest build'}).refine(value=>value.mandatoryAfter===undefined||Date.parse(value.mandatoryAfter)-Date.parse(value.publishedAt)===48*60*60*1000,{message:'Mandatory deadline must be exactly 48 hours after publication'});
 export const appRelease=appReleaseSchema.parse(configuredRelease);
-export function appVersionResponse(){return Response.json({data:appRelease},{headers:{
+export function appVersionResponse(){return Response.json({data:{...appRelease,mandatoryAfter:appRelease.mandatoryAfter||new Date(Date.parse(appRelease.publishedAt)+48*60*60*1000).toISOString(),serverTime:new Date().toISOString()}},{headers:{
  'Cache-Control':'no-store, max-age=0',
  'CDN-Cache-Control':'no-store',
  'Surrogate-Control':'no-store',

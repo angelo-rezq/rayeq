@@ -9,6 +9,9 @@ No login, session or database query is required. The normal API envelope applies
 ```json
 {
   "data": {
+    "publishedAt": "2026-11-22T10:49:01Z",
+    "mandatoryAfter": "2026-11-24T10:49:01.000Z",
+    "serverTime": "2026-11-22T16:02:00.000Z",
     "latestBuild": 1,
     "latestVersion": "1.0.0",
     "minSupportedBuild": 1,
@@ -20,6 +23,9 @@ No login, session or database query is required. The normal API envelope applies
 }
 ```
 
+- `publishedAt`: fixed ISO-8601 UTC (`Z`) publication time of the approved APK release. Set it when that APK release is published, not on a web deploy, notes edit, app launch or version check. Current build1 uses its first confirmed successful full-APK download at 2026-11-22T10:49:01Z as the historical publication baseline.
+- `mandatoryAfter`: ISO-8601 UTC release deadline, exactly 48 hours after `publishedAt`. Optional in config; the API always returns it, calculating it from `publishedAt` if omitted. An explicitly configured value must equal publication plus 48 hours.
+- `serverTime`: fresh ISO-8601 UTC backend time generated for each response, never read from config. Its value above is only an example. Use it to anchor the deadline instead of trusting the phone's wall clock.
 - `latestBuild`: Android `versionCode`, an integer. Compare numbers, not version strings.
 - `latestVersion`: Android `versionName`, for display.
 - `minSupportedBuild`: lowest supported Android build. It must not exceed `latestBuild`. Raising it is an explicit release decision, not an automatic part of publishing an APK.
@@ -36,7 +42,7 @@ The release bump point is `config/app-release.json`, tracked in this private rep
 
 1. Build the APK with a higher Android `versionCode`. Preserve the installed app's application ID and signing key. Verify `versionName`, `versionCode`, signing certificate and supported architecture from the built APK, not its filename alone.
 2. Copy it into `public/download/` using a new filename for every build, for example `rayeq-arm64-1.0.1-build2.apk`. Never overwrite an existing APK URL: APK responses are cacheable and immutable.
-3. Compute the file's SHA-256 with `sha256sum`. Update all release fields in `config/app-release.json`. Keep `minSupportedBuild` unchanged unless a forced update is intended. Use the exact new HTTPS URL under `/download/`.
+3. Compute the file's SHA-256 with `sha256sum`. Update release fields in `config/app-release.json` and set `publishedAt` to the approved APK publication time in UTC. Do not reset it on later web/API deploys or notes edits. Omit `mandatoryAfter` to use the computed 48-hour deadline, or supply exactly that time. Never put `serverTime` in config. Keep `minSupportedBuild` unchanged unless a separate compatibility change is intended. Use the exact new HTTPS URL under `/download/`.
 4. Run `npm run typecheck` and `npm run build`. The build runs `npm run verify:release` first. It validates metadata, checks the hosted APK file exists locally, checks ZIP magic, enforces this service's configured origin and verifies the exact SHA-256. Native app version/signing verification is still the publisher's responsibility.
 5. Commit the APK and metadata together, then deploy. This keeps the download and metadata in the same release. Leave prior APKs available for rollback. A release must never advertise an APK before it is hosted.
 6. After deploy, fetch the public version endpoint without auth. Download the exact returned `apkUrl` and independently compare its SHA-256 with the returned `sha256`. Test an upgrade over the previous installed APK on Android before announcing release.
@@ -47,7 +53,7 @@ The default expected origin is `https://rayeq-platform.onrender.com`; `PUBLIC_OR
 
 The Flutter client can check on launch/resume and from an explicit "check for updates" action. Do not poll constantly. Handle offline, timeout, non-200, malformed metadata, mismatched hashes and interrupted downloads without losing the user's session or data.
 
-If installed build is below `latestBuild`, offer the update and show the release notes. If it is below `minSupportedBuild`, show a clear required-update state with a retry/download path. If the version endpoint is unavailable, the client must not invent a forced-update requirement. This minimum is a client policy signal, not server-side API enforcement.
+If installed build is below `latestBuild`, offer the update and show the release notes. During the 48-hour grace, it remains optional. Once backend-anchored time reaches `mandatoryAfter`, the older build should show a clear required-update state with a retry/download path. `minSupportedBuild` is separate compatibility metadata; do not raise it merely to bypass the normal grace period. If the version endpoint is unavailable, the client must not invent a new deadline or reset a previously known deadline. This is client update-policy metadata, not server-side booking API enforcement. Merely adding these timestamp fields does not publish a new APK or change the current build/minimum.
 
 Download only from an approved HTTPS Rayeq origin and compare SHA-256 before handing the APK to Android's installer. SHA-256 checks integrity against the metadata; Android's signing-certificate verification remains essential. Android must show its normal installation consent. This endpoint does not permit silent installs or bypassing Android security settings.
 
