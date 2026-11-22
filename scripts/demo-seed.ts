@@ -1,3 +1,4 @@
+import {pilotPreview} from '../lib/demo-fixtures';
 import {DateTime} from 'luxon';
 import {pool,tx,audit} from '../lib/db';
 const seedId='rayeq-pilot-20261122';
@@ -15,8 +16,8 @@ async function main(){console.log(await tx(async db=>{
  if(!admin||!customer||!worker)throw Error('Verified pilot identities missing');
  const employee=(await db.query('SELECT * FROM rayeq_employees WHERE user_id=$1 AND active FOR UPDATE',[worker.id])).rows[0];if(!employee)throw Error('Active test employee missing');
  if((await db.query('SELECT id FROM rayeq_services WHERE id=ANY($1::uuid[])',[serviceIds])).rowCount||(await db.query('SELECT id FROM rayeq_areas WHERE id=ANY($1::uuid[])',[areaIds])).rowCount)throw Error('Seed identifier collision');
- for(const[id,name,duration]of [[serviceIds[0],'خدمة تجريبية مجانية: قص شعر',30],[serviceIds[1],'خدمة تجريبية مجانية: تهذيب ذقن',20]])await db.query('INSERT INTO rayeq_services(id,name_ar,description_ar,category,duration_minutes,price_minor,active,image_url) VALUES($1,$2,$3,$4,$5,0,true,$6)',[id,name,'بيانات اختبار فقط. لا توجد زيارة أو خدمة حقيقية ولا تحصيل أموال.','تجربة مجانية',duration,'https://rayeq-platform.onrender.com/mobile-demo/assets/assets/images/grooming.webp']);
- await db.query('INSERT INTO rayeq_areas(id,name_ar,travel_fee_minor,active) VALUES($1,$2,0,true)',[areaIds[0],'منطقة تجريبية - بدون زيارة حقيقية']);
+ for(const[id,name,duration]of [[serviceIds[0],pilotPreview.services[serviceIds[0]].nameAr,30],[serviceIds[1],pilotPreview.services[serviceIds[1]].nameAr,20]])await db.query('INSERT INTO rayeq_services(id,name_ar,description_ar,category,duration_minutes,price_minor,active,image_url) VALUES($1,$2,$3,$4,$5,0,true,$6)',[id,name,pilotPreview.services[String(id)].descriptionAr,pilotPreview.services[String(id)].category,duration,'https://rayeq-platform.onrender.com/mobile-demo/assets/assets/images/grooming.webp']);
+ await db.query('INSERT INTO rayeq_areas(id,name_ar,travel_fee_minor,active) VALUES($1,$2,0,true)',[areaIds[0],pilotPreview.areaNameAr]);
  await db.query('UPDATE rayeq_employees SET service_ids=$1,area_ids=$2 WHERE id=$3',[serviceIds,areaIds,employee.id]);
  const expiresAt=DateTime.now().setZone('Africa/Cairo').plus({days:7}).toUTC().toISO();
  const manifest={seedId,serviceIds,areaIds,customerId:customer.id,workerUserId:worker.id,employeeId:employee.id,previousServiceIds:employee.service_ids,previousAreaIds:employee.area_ids,createdAt:new Date().toISOString(),expiresAt};
