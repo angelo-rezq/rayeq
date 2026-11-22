@@ -1,3 +1,4 @@
+import {publicBarberFields,publicBarberMediaMany} from './barber-profile-data';
 import {galleryFor} from './gallery-storage';
 import {z} from 'zod';
 import {randomUUID} from 'node:crypto';
@@ -39,12 +40,12 @@ export async function contentRoute(req:Request,path:string,u:User,readBody:<T>(r
   const e=(await pool.query('SELECT id FROM rayeq_employees WHERE user_id=$1 AND active',[u.id])).rows[0];if(!e)fail(403,'WORKER_NOT_ACTIVE','حساب العامل غير مفعّل');const context=await directoryContext(pool,u);const seed=context.demoIds.includes(e.id)?(await pool.query("SELECT demo_seed FROM rayeq_reviews WHERE employee_id=$1 AND demo_seed IS NOT NULL LIMIT 1",[e.id])).rows[0]?.demo_seed:undefined;return ok({...((await ratingSummaryMany(pool,[e.id],seed))[e.id]),demoOnly:Boolean(seed)});
  }
  if(path==='/barbers/featured'&&method==='GET'){
-  const d=await visibleBarbers(pool,u),ratings=await ratingSummaryMany(pool,d.rows.map(r=>r.id),d.demoSeed),limit=Math.min(30,Math.max(1,Math.trunc(Number(new URL(req.url).searchParams.get('limit')))||10));const items=d.rows.map(r=>({id:r.id,nameAr:r.name,nameEn:r.name_en||'',...ratings[r.id],demoOnly:d.demoIds.includes(r.id)})).sort((a,b)=>(b.ratingAverage??-1)-(a.ratingAverage??-1)||b.reviewCount-a.reviewCount||a.nameAr.localeCompare(b.nameAr)).slice(0,limit);return ok({items});
+  const d=await visibleBarbers(pool,u),ratings=await ratingSummaryMany(pool,d.rows.map(r=>r.id),d.demoSeed),media=await publicBarberMediaMany(pool,d.rows.map(r=>r.id),d.demoSeed),limit=Math.min(30,Math.max(1,Math.trunc(Number(new URL(req.url).searchParams.get('limit')))||10));const items=d.rows.map(r=>({id:r.id,nameAr:r.name,nameEn:r.name_en||'',...ratings[r.id],...media[r.id],demoOnly:d.demoIds.includes(r.id)})).sort((a,b)=>(b.ratingAverage??-1)-(a.ratingAverage??-1)||b.reviewCount-a.reviewCount||a.nameAr.localeCompare(b.nameAr)).slice(0,limit);return ok({items});
  }
  m=path.match(/^\/barbers\/([^/]+)(\/reviews)?$/);
  if(m&&method==='GET'){
   const d=await visibleBarbers(pool,u,m[1]),barber=d.rows[0],rating=(await ratingSummaryMany(pool,[barber.id],d.demoSeed))[barber.id];
-  if(!m[2])return ok({id:barber.id,nameAr:barber.name,nameEn:barber.name_en||'',...rating,demoOnly:d.demoIds.includes(barber.id),gallery:await galleryFor(pool,barber.id,d.demoSeed)});
+  if(!m[2])return ok({id:barber.id,nameAr:barber.name,nameEn:barber.name_en||'',...rating,demoOnly:d.demoIds.includes(barber.id),...await publicBarberFields(pool,barber.id),gallery:await galleryFor(pool,barber.id,d.demoSeed)});
   const q=pageQuery(req),r=(await pool.query(`SELECT r.* FROM rayeq_reviews r WHERE r.employee_id=$1 AND (r.demo_seed IS NULL OR r.demo_seed=$2) AND NOT r.hidden ${q.clause} ORDER BY r.created_at DESC,r.id DESC LIMIT $${q.after.length?5:3}`,[barber.id,d.demoSeed||null,...q.after,q.limit+1])).rows,page=pageResult(r,q.limit);return ok({...page,items:page.items.map(publicReview),...rating});
  }
  if(path==='/admin/reviews'&&method==='GET'){

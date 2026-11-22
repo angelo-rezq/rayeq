@@ -1,3 +1,4 @@
+import {publicImageStorageBytes} from './barber-profile-data';
 import {z} from 'zod';import {pool,tx,audit} from './db';import {User,fail,rateLimit} from './auth';
 import {visibleBarbers,pageQuery,pageResult} from './barber-content';
 import {galleryFor,employeeDemoSeed,readWorkPhoto,storeWorkPhoto,photoDTO,photoResponse,galleryLimits} from './gallery-storage';
@@ -15,7 +16,7 @@ export async function galleryRoute(req:Request,path:string,u:User):Promise<Respo
  }
  if(path==='/admin/gallery'&&method==='GET'){
   const q=pageQuery(req,'p'),employeeId=new URL(req.url).searchParams.get('employeeId');if(employeeId&&!uuid.safeParse(employeeId).success)fail(400,'VALIDATION_ERROR','اختر موظفاً صحيحاً');
-  const rows=(await pool.query(`SELECT p.id,p.employee_id,p.width,p.height,p.byte_size,p.created_at,p.demo_seed,e.name,e.name_en FROM rayeq_work_photos p JOIN rayeq_employees e ON e.id=p.employee_id WHERE ($1::uuid IS NULL OR p.employee_id=$1) AND $2::text='gallery' ${q.clause} ORDER BY p.created_at DESC,p.id DESC LIMIT $${q.after.length?5:3}`,[employeeId||null,'gallery',...q.after,q.limit+1])).rows,page=pageResult(rows,q.limit),used=Number((await pool.query('SELECT COALESCE(sum(byte_size),0)::bigint bytes FROM rayeq_work_photos')).rows[0].bytes);
+  const rows=(await pool.query(`SELECT p.id,p.employee_id,p.width,p.height,p.byte_size,p.created_at,p.demo_seed,e.name,e.name_en FROM rayeq_work_photos p JOIN rayeq_employees e ON e.id=p.employee_id WHERE ($1::uuid IS NULL OR p.employee_id=$1) AND $2::text='gallery' ${q.clause} ORDER BY p.created_at DESC,p.id DESC LIMIT $${q.after.length?5:3}`,[employeeId||null,'gallery',...q.after,q.limit+1])).rows,page=pageResult(rows,q.limit),used=await publicImageStorageBytes(pool);
   return ok({...page,items:page.items.map(r=>({...photoDTO(r),employeeId:r.employee_id,barberNameAr:r.name,barberNameEn:r.name_en||'',adminUrl:'/api/v1/admin/gallery/'+r.id+'/image'})),storage:{bytesUsed:used,maxBytes:galleryLimits.maxStorageBytes},maxPhotosPerBarber:galleryLimits.maxPhotos});
  }
  m=path.match(/^\/admin\/gallery\/([^/]+)\/image$/);if(m&&method==='GET'){if(!uuid.safeParse(m[1]).success)fail(404,'PHOTO_NOT_FOUND','الصورة غير موجودة');return photoResponse(m[1],req,true);}
