@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS rayeq_sessions(token_hash text PRIMARY KEY,user_id uu
 CREATE TABLE IF NOT EXISTS rayeq_codes(email text NOT NULL,purpose text NOT NULL,code_hash text NOT NULL,expires_at timestamptz NOT NULL,last_sent_at timestamptz NOT NULL DEFAULT now(),attempts integer NOT NULL DEFAULT 0,PRIMARY KEY(email,purpose));
 CREATE TABLE IF NOT EXISTS rayeq_limits(key text PRIMARY KEY,hits integer NOT NULL,expires_at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS rayeq_profiles(user_id uuid PRIMARY KEY REFERENCES rayeq_users(id) ON DELETE CASCADE,phone text NOT NULL DEFAULT '',avatar_bytes bytea,avatar_version integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE rayeq_profiles ADD COLUMN IF NOT EXISTS bio text NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS rayeq_settings(key text PRIMARY KEY,value jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS rayeq_services(id uuid PRIMARY KEY,name_ar text NOT NULL,description_ar text NOT NULL DEFAULT '',category text NOT NULL DEFAULT '',duration_minutes integer NOT NULL CHECK(duration_minutes BETWEEN 5 AND 480),price_minor integer NOT NULL CHECK(price_minor>=0),version integer NOT NULL DEFAULT 1,active boolean NOT NULL DEFAULT true);
 ALTER TABLE rayeq_services ADD COLUMN IF NOT EXISTS image_url text;

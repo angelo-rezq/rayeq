@@ -64,3 +64,7 @@ Only `/api/v1/work-photos/:id` and `/api/v1/barber-portraits/:id` allow unauthen
 The backed-up build-2 featured-card widget used a fixed scissors icon, and its customer profile had no portrait input. The previous API had no portrait URL. Adding transport headers alone cannot make those widgets display a portrait. The mobile client must consume the additive portraitUrl/galleryThumbnailUrl fields and render the new profile fields. No device-wide image failure is claimed fixed without a real-device check of the updated app.
 
 Read-only live HTTP/decode check: `node --import tsx scripts/public-media-http-smoke.ts`. It checks the seeded demo portrait/gallery URLs, public methods and headers, actual WebP decoding and that the private avatar remains protected. It does not create a login session or change content.
+
+## Private own-account bio
+
+GET `/api/v1/profile` returns additive `bio:string`, default `""`. PATCH the same route with `{bio:"..."}` to replace it; the string is trimmed, limited to 1500 characters, and `""` clears it. Existing name/phone-only patches are unchanged. It is available to any signed-in account, including customers and workers, but only for the current account. It is not added to public barber/customer or booking data, and audit logs record only whether it changed. A worker's public bioAr/bioEn are a separate explicit public-profile edit.

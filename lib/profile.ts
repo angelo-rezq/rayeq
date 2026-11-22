@@ -5,23 +5,24 @@ import {fail,User,rateLimit} from './auth';
 const origin=()=>String(process.env.PUBLIC_ORIGIN||process.env.RENDER_EXTERNAL_URL||'').replace(/\/$/,'');
 const ok=(data:unknown)=>Response.json({data});
 export async function profileFor(u:User){
- const row=(await pool.query('SELECT u.name,p.phone,p.avatar_version,octet_length(p.avatar_bytes) avatar_size,e.id employee_id,e.name employee_name,e.name_en employee_name_en,e.active,e.service_ids,e.area_ids FROM rayeq_users u LEFT JOIN rayeq_profiles p ON p.user_id=u.id LEFT JOIN rayeq_employees e ON e.user_id=u.id WHERE u.id=$1',[u.id])).rows[0];
+ const row=(await pool.query('SELECT u.name,p.phone,p.bio,p.avatar_version,octet_length(p.avatar_bytes) avatar_size,e.id employee_id,e.name employee_name,e.name_en employee_name_en,e.active,e.service_ids,e.area_ids FROM rayeq_users u LEFT JOIN rayeq_profiles p ON p.user_id=u.id LEFT JOIN rayeq_employees e ON e.user_id=u.id WHERE u.id=$1',[u.id])).rows[0];
  if(!row)fail(404,'NOT_FOUND','الحساب غير موجود');
- return {...u,name:row.name,displayNameEn:row.employee_name_en||'',phone:row.phone||'',avatarUrl:row.avatar_size?origin()+'/api/v1/profile/avatar?v='+row.avatar_version:null,...(row.employee_id?{workerProfile:{employeeId:row.employee_id,employeeName:row.employee_name,employeeNameEn:row.employee_name_en||'',active:row.active,serviceIds:row.service_ids,areaIds:row.area_ids}}:{})};
+ return {...u,name:row.name,displayNameEn:row.employee_name_en||'',phone:row.phone||'',bio:row.bio||'',avatarUrl:row.avatar_size?origin()+'/api/v1/profile/avatar?v='+row.avatar_version:null,...(row.employee_id?{workerProfile:{employeeId:row.employee_id,employeeName:row.employee_name,employeeNameEn:row.employee_name_en||'',active:row.active,serviceIds:row.service_ids,areaIds:row.area_ids}}:{})};
 }
 let encoding=false;
 export async function profileRoute(req:Request,u:User,path:string):Promise<Response|undefined>{
  if(path==='/profile'&&req.method==='GET')return ok(await profileFor(u));
  if(path==='/profile'&&req.method==='PATCH'){
-  const raw=await req.text();if(raw.length>2000)fail(413,'BODY_TOO_LARGE','البيانات أكبر من المسموح');
+  const raw=await req.text();if(raw.length>12000)fail(413,'BODY_TOO_LARGE','البيانات أكبر من المسموح');
   let value;try{value=JSON.parse(raw)}catch{fail(400,'INVALID_JSON','البيانات غير صالحة')}
-  const parsed=z.object({name:z.string().trim().min(1).max(100).optional(),phone:z.string().trim().max(20).refine(v=>v===''||/^\+?[0-9 ()-]{8,20}$/.test(v)).optional()}).strict().refine(v=>v.name!==undefined||v.phone!==undefined).safeParse(value);
-  if(!parsed.success)fail(400,'VALIDATION_ERROR','راجع الاسم ورقم التواصل');
+  const parsed=z.object({bio:z.string().trim().max(1500).optional(),name:z.string().trim().min(1).max(100).optional(),phone:z.string().trim().max(20).refine(v=>v===''||/^\+?[0-9 ()-]{8,20}$/.test(v)).optional()}).strict().refine(v=>v.name!==undefined||v.phone!==undefined||v.bio!==undefined).safeParse(value);
+  if(!parsed.success)fail(400,'VALIDATION_ERROR','راجع الاسم ورقم التواصل والنبذة');
   const p=parsed.data;
   await tx(async db=>{
    if(p.name!==undefined)await db.query('UPDATE rayeq_users SET name=$1 WHERE id=$2',[p.name,u.id]);
    if(p.phone!==undefined){await db.query('INSERT INTO rayeq_profiles(user_id,phone) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET phone=$2,updated_at=now()',[u.id,p.phone]);if(u.role==='worker')await db.query('UPDATE rayeq_employees SET phone=$1 WHERE user_id=$2',[p.phone,u.id]);}
-   await audit(db,u.id,'profile.updated',u.id,{nameChanged:p.name!==undefined,phoneChanged:p.phone!==undefined});
+   if(p.bio!==undefined)await db.query('INSERT INTO rayeq_profiles(user_id,bio) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET bio=$2,updated_at=now()',[u.id,p.bio]);
+   await audit(db,u.id,'profile.updated',u.id,{nameChanged:p.name!==undefined,phoneChanged:p.phone!==undefined,bioChanged:p.bio!==undefined});
   });return ok(await profileFor(u));
  }
  if(path==='/profile/avatar'&&req.method==='GET'){

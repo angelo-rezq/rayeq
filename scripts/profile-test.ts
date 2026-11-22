@@ -13,7 +13,7 @@ async function request(path:string,method='GET',data?:any,token?:string,mime='ap
 async function run(){await migrate();
  for(let i=0;i<2;i++){const id=randomUUID();ids.push(id);await pool.query("INSERT INTO rayeq_users(id,name,email,password_hash,role,email_verified) VALUES($1,$2,$3,'!disabled-test!','customer',true)",[id,'ملف اختبار مؤقت','profile-test-'+id+'@rayeq.invalid']);const row=(await pool.query('SELECT * FROM rayeq_users WHERE id=$1',[id])).rows[0];tokens.push((await session(pool,row)).token)}
  let r=await request('/profile');check(r.status===401,'anonymous profile denied');
- r=await request('/profile','GET',undefined,tokens[0]);check(r.status===200&&r.data.data.id===ids[0]&&r.data.data.avatarUrl===null,'self profile fields returned');
+ r=await request('/profile','GET',undefined,tokens[0]);check(r.status===200&&r.data.data.id===ids[0]&&r.data.data.avatarUrl===null&&r.data.data.bio==='','self profile fields returned');
  r=await request('/profile','PATCH',{name:'اسم تجربة محدث',phone:'+201000000000'},tokens[0]);check(r.status===200&&r.data.data.name==='اسم تجربة محدث'&&r.data.data.phone==='+201000000000','own name and contact phone persist');check(r.data.data.emailVerified&&r.data.data.role==='customer','contact phone does not change identity or role');
  r=await request('/profile','PATCH',{role:'admin'},tokens[0]);check(r.status===400,'role update rejected');
  r=await request('/profile','PATCH',{email:'other@rayeq.invalid'},tokens[0]);check(r.status===400,'email update rejected');
@@ -21,6 +21,12 @@ async function run(){await migrate();
  r=await request('/profile','PATCH',{phone:'bad-number'},tokens[0]);check(r.status===400,'invalid contact phone rejected');
  r=await request('/profile','PATCH',{},tokens[0]);check(r.status===400,'empty update rejected');
  r=await request('/profile?userId='+ids[0],'GET',undefined,tokens[1]);check(r.status===200&&r.data.data.id===ids[1]&&r.data.data.phone==='','query cannot select another profile');
+ r=await request('/profile','PATCH',{bio:'  نبذة شخصية خاصة  '},tokens[0]);check(r.status===200&&r.data.data.bio==='نبذة شخصية خاصة','own private bio saved and trimmed');
+ r=await request('/profile?userId='+ids[0],'GET',undefined,tokens[1]);check(r.status===200&&r.data.data.id===ids[1]&&r.data.data.bio==='','private bio cannot be read by another account query');
+ for(const bio of [null,{},['invalid'],'x'.repeat(1501)])check((await request('/profile','PATCH',{bio},tokens[0])).status===400,'invalid private bio rejected');
+ r=await request('/profile','PATCH',{bio:'ن'.repeat(1500)},tokens[0]);check(r.status===200&&r.data.data.bio.length===1500,'maximum length Arabic bio accepted');
+ r=await request('/profile','PATCH',{bio:''},tokens[0]);check(r.status===200&&r.data.data.bio==='','empty private bio clears');
+ r=await request('/profile','PATCH',{bio:'Private fixture'},tokens[0]);check(r.status===200&&r.data.data.name==='اسم تجربة محدث'&&r.data.data.phone==='+201000000000','bio-only update preserves name and phone');
  r=await request('/profile/avatar','GET',undefined,tokens[0]);check(r.status===404,'missing avatar is explicit 404');
  r=await request('/profile/avatar','PUT',new TextEncoder().encode('<svg/>'),tokens[0],'image/svg+xml');check(r.status===415,'SVG rejected');
  r=await request('/profile/avatar','PUT',new Uint8Array(2*1024*1024+1),tokens[0],'image/png');check(r.status===413,'oversized streamed upload rejected');
