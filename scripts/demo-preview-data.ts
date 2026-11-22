@@ -10,7 +10,7 @@ async function main(){console.log(await tx(async db=>{
  const ids=[m.completedBookingId,m.confirmedBookingId];
  if(ids.some(id=>!id))throw Error('Seed booking identifiers missing');
  const bookings=(await db.query('SELECT * FROM rayeq_bookings WHERE id=ANY($1::uuid[]) FOR UPDATE',[ids])).rows;
- if(bookings.length!==2||bookings.some(b=>b.document.demoSeed!==p.seedId||b.customer_id!==m.customerId||b.employee_id!==m.employeeId||!p.services[b.document.service.id]||!m.areaIds.includes(b.document.area.id)||b.document.price.totalMinor!==0||b.document.payment.status!=='UNPAID'||b.document.payment.collectedMinor!==0))throw Error('Unexpected booking ownership or monetary state');
+ if(bookings.length!==2||bookings.some(b=>b.document.demoSeed!==p.seedId||b.customer_id!==m.customerId||b.employee_id!==m.employeeId||!p.services[b.document.service.id]||!m.areaIds.includes(b.document.area.id)||![0,p.services[b.document.service.id].priceMinor].includes(b.document.price.totalMinor)||b.document.payment.status!=='UNPAID'||b.document.payment.collectedMinor!==0))throw Error('Unexpected booking ownership or monetary state');
  if(!process.argv.includes('--confirm'))return{dryRun:true,bookings:bookings.length,maskedPhone:true,area:p.areaNameAr};
  for(const id of m.serviceIds){const s=p.services[id];if(!s)throw Error('Unexpected service');await db.query('UPDATE rayeq_services SET name_ar=$2,description_ar=$3,category=$4,version=version+1 WHERE id=$1',[id,s.nameAr,s.descriptionAr,s.category]);}
  await db.query('UPDATE rayeq_areas SET name_ar=$2,version=version+1 WHERE id=ANY($1::uuid[])',[m.areaIds,p.areaNameAr]);

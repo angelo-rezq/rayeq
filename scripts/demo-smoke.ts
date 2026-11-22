@@ -1,3 +1,4 @@
+import {pilotPreview} from '../lib/demo-fixtures';
 import {randomUUID} from 'node:crypto';
 import {DateTime} from 'luxon';
 import {pool,tx} from '../lib/db';
@@ -16,7 +17,7 @@ async function main(){
    const d=await r.json();if(r.status!==expected)throw Error(path+' expected '+expected+' got '+r.status+' '+d.error?.code);return d.data;
   }
   const catalog=await(await fetch(base+'/catalog')).json();if(!catalog.data.demoOnly||!catalog.data.intakeEnabled||!catalog.data.isDemo)throw Error('DEMO_DEPLOY_NOT_LIVE');
-  const q=await api('customer','/quotes','POST',{serviceId:manifest.serviceIds[0],areaId:manifest.areaIds[0]});if(q.totalMinor!==0)throw Error('DEMO_MUST_BE_FREE');
+  const q=await api('customer','/quotes','POST',{serviceId:manifest.serviceIds[0],areaId:manifest.areaIds[0]});if(q.totalMinor!==pilotPreview.services[q.serviceId]?.priceMinor)throw Error('PREVIEW_PRICE_MISMATCH');
   let plan=manifest.e2ePlan;
   if(!plan){
    const now=DateTime.now().setZone('Africa/Cairo');plan={};
@@ -38,7 +39,7 @@ async function main(){
     const order=['CONFIRMED','ON_THE_WAY','ARRIVED','IN_PROGRESS','COMPLETED'];if(order.indexOf(b.status)>=order.indexOf(next))continue;
     b=await api('worker','/worker/bookings/'+b.id+'/status','PATCH',{status:next,version:b.version});
    }
-   const visible=await api('customer','/bookings/'+b.id);const workerList=await api('worker','/worker/bookings?limit=100');if(!workerList.items.some((r:any)=>r.id===b.id)||visible.status!==b.status||b.payment.status!=='UNPAID'||b.price.totalMinor!==0)throw Error('FLOW_CHECK_FAILED');
+   const visible=await api('customer','/bookings/'+b.id);const workerList=await api('worker','/worker/bookings?limit=100');if(!workerList.items.some((r:any)=>r.id===b.id)||visible.status!==b.status||b.payment.status!=='UNPAID'||![0,pilotPreview.services[b.service.id].priceMinor].includes(b.price.totalMinor))throw Error('FLOW_CHECK_FAILED');
    await pool.query("UPDATE rayeq_settings SET value=jsonb_set(value,$2::text[],$3::jsonb) WHERE key=$1",[key,[name+'BookingId'],JSON.stringify(b.id)]);
    console.log(JSON.stringify({scenario:name,bookingId:b.id,reference:b.reference,status:b.status,customerVisible:true,workerVisible:true,totalMinor:b.price.totalMinor,paymentStatus:b.payment.status}));
   }

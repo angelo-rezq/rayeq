@@ -2,7 +2,7 @@
 
 The allowlisted pilot fixtures use fictional names and a neutral, city-free address to preview the normal app UI. They are not real customers, staff or dispatch instructions.
 
-`node --env-file=.env.local --import tsx scripts/demo-preview-data.ts` previews the fixture update. Add `--confirm` to apply it to the two manifest-owned seed bookings and their allowlisted catalog/accounts. It rejects an open public intake, unexpected owners or any nonzero/paid seed booking. This updates presentation data, not booking/payment lifecycle states. It does not change passwords, emails or account roles.
+`node --env-file=.env.local --import tsx scripts/demo-preview-data.ts` previews the fixture update. Add `--confirm` to apply it to the two manifest-owned seed bookings and their allowlisted catalog/accounts. It rejects an open public intake, unexpected owners, unrecognized fixture amounts or any paid seed booking. This updates presentation data, not booking/payment lifecycle states. It does not change passwords, emails or account roles.
 
 ## Optional booking display fields
 
@@ -27,6 +27,6 @@ Select English fields in English mode, falling back to the original Arabic field
 - New allowlisted demo bookings receive `dispatchAllowed:false`.
 - A seeded demo booking can be assigned only to the manifest's mapped pilot employee/user. Reassigning it to another employee fails with `409 DEMO_DISPATCH_BLOCKED`.
 - No external dispatch integration or booking email is added. Masked fixture contacts are not real recipients.
-- Prices stay zero and payment states/amounts are not changed by the presentation update.
+- Payment state/collected amounts are not changed by presentation updates. Fictional preview prices are centralized in `lib/demo-fixtures.ts`: haircut 200 EGP, beard 100 EGP, travel zero. They are not commercial offers. `scripts/demo-preview-prices.ts` is dry-run unless `--confirm` is supplied and reconciles only the manifest's confirmed haircut fixture to its service total. The older completed zero-price booking is retained as a historical fixture. All remain removable by `demo:reset`.
 - Demo expiry and ownership manifest are retained. `npm run demo:reset` still discovers the fixture records by IDs/demoSeed, not display names; it is dry-run unless `--confirm` is supplied. Never use a reset merely to test it on live data.
 - The saved smoke-test idempotency payloads are left unchanged to preserve their request hashes and history. Historical audit entries are not rewritten. The older `demo-neutral-labels.ts` utility reflects an earlier presentation and should not be rerun over this preview.
