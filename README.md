@@ -40,3 +40,6 @@ Matching Flutter source is in `rayeq-mobile/`, with its own build and verificati
 The matching Flutter UI is hosted at `/mobile-demo/` for browser-based screenshots. This is not proof of Android device installation or native runtime behavior.
 
 Review removal first: `npm run demo:reset`. Remove seeded bookings/catalog and stop demo access: `npm run demo:reset -- --confirm`. To also remove the two test accounts and test employee before launch: `npm run demo:reset -- --confirm --remove-test-accounts`. Financial or unrelated booking records cause removal to stop for inspection. The real administrator is preserved, public intake is closed, and audit history is retained. The seed manifest is stored under `rayeq_settings['demo:rayeq-pilot-20261122']`. These commands require the dedicated Rayeq database environment only.
+
+## Profiles and images
+See `docs/PROFILE-API.md` for authenticated self-profile changes and private avatar upload/retrieval. Avatar bytes live in Neon and are normalized to bounded WebP, never stored on Render disk. `npm run test:profile` checks the local handler with removable fixtures; `RAYEQ_LIVE_TEST=1 npm run test:profile` checks the deployed HTTPS endpoints with the same isolated identities and cleans up afterward. It does not change the live demo configuration or real accounts.

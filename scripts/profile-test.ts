@@ -7,7 +7,7 @@ import {session,hash} from '../lib/auth';
 const ids:string[]=[],tokens:string[]=[];let passed=0;
 function check(v:unknown,label:string){assert.ok(v,label);passed++;console.log('PASS',label)}
 async function request(path:string,method='GET',data?:any,token?:string,mime='application/json'){
- const r=await handle(new Request('https://rayeq-platform.onrender.com/api/v1'+path,{method,headers:{'Content-Type':mime,...(token?{Authorization:'Bearer '+token}:{})},body:data===undefined?undefined:(data instanceof Uint8Array?new Uint8Array(data).buffer:JSON.stringify(data))}),path.split('?')[0].split('/').filter(Boolean));
+ const req=new Request('https://rayeq-platform.onrender.com/api/v1'+path,{method,headers:{'Content-Type':mime,...(token?{Authorization:'Bearer '+token}:{})},body:data===undefined?undefined:(data instanceof Uint8Array?new Uint8Array(data).buffer:JSON.stringify(data))});const r=process.env.RAYEQ_LIVE_TEST==='1'?await fetch(req):await handle(req,path.split('?')[0].split('/').filter(Boolean));
  const type=r.headers.get('Content-Type')||'';return {status:r.status,data:type.includes('application/json')?await r.json():new Uint8Array(await r.arrayBuffer()),type};
 }
 async function run(){await migrate();
