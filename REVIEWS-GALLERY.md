@@ -1,0 +1,18 @@
+# Ratings, reviews and work photos
+
+All JSON endpoints return `{data:...}` or `{error:{code,message,fields}}`.
+Ratings/reviews below are implemented first. Gallery is a separate rollout, not live until its deployment is verified.
+
+## Reviews
+- Customer `POST /api/v1/bookings/:bookingId/review`, Bearer, `{rating:1..5,text?:string}`. Integer rating, optional trimmed plain text up to 1000 characters. Completed booking with an assigned barber, owned by this customer, once only. Booking row lock plus unique booking constraint prevents duplicate concurrent reviews. 201 returns `{id,rating,text,customerDisplayName,createdAt,demoOnly}`. Duplicate 409 `REVIEW_ALREADY_EXISTS`; ineligible 409 `REVIEW_NOT_ELIGIBLE`; another customer's booking 404.
+- Customer booking objects add `canReview:boolean`, `review:review|null`. Other roles receive `canReview:false,review:null`. Existing finance/address fields and permissions are unchanged.
+- `GET /api/v1/barbers/:id/reviews?limit=20&cursor=...`, authenticated. Max 50 per page. `{items:review[],nextCursor:string|null,ratingAverage:number|null,reviewCount:number}`. Public reviewer display is first name or initial only, not their account/contact details. Review text is user-supplied plain text; dashboard moderation can hide it.
+- Nearby barber items, `GET /api/v1/barbers/featured?limit=10` (max 30), and `GET /api/v1/barbers/:id` include `ratingAverage:number|null,reviewCount:number`. Featured returns `{items:[{id,nameAr,nameEn,ratingAverage,reviewCount,demoOnly}]}`. Zero reviews is null/0, not a synthetic score. Inactive/unapproved employees and demo employees outside the allowlist are excluded.
+- Worker `GET /api/v1/worker/rating`: `{ratingAverage,reviewCount,demoOnly}` for their own employee only.
+- Admin `GET /api/v1/admin/reviews?visibility=all|visible|hidden&limit=20&cursor=...`; adds employee/barber names, booking/reference, hidden and moderationReason to each review. `PATCH /api/v1/admin/reviews/:id`, `{hidden:boolean,reason?:string<=500}`. Hidden reviews leave public lists and aggregates immediately; unhide restores them. Moderation is audited. An author cannot replace a hidden review.
+- Demo reviews carry `demoOnly:true`, require an existing completed demo booking, and are included only in an active allowlisted demo customer's aggregates (and the demo worker's own rating). They do not inflate normal ratings. `scripts/demo-reviews.ts` seeds one explicitly fictional review, not fabricated real customer praise. `demo-reset` checks ownership before including reviews in its dry-run and future approved cleanup. Never execute launch reset without explicit approval.
+
+## Planned gallery contract
+- `GET /api/v1/barbers/:id/gallery` and worker `GET /api/v1/worker/gallery`: `{items:[{id,url,width,height,byteSize,createdAt,demoOnly}],maxPhotos:6}`. Barber detail includes `gallery` using this shape.
+- Worker `POST /api/v1/worker/gallery`: raw binary body, Content-Type `image/jpeg`, `image/png`, or `image/webp`, not multipart/JSON. Max 5 MiB, 16 megapixels, static only. Re-encode server-side to metadata-free WebP, max long edge 1600, output at most 250 KiB. Six photos per barber, a 60 MiB gallery storage budget for this pilot. `DELETE /api/v1/worker/gallery/:photoId` removes own photo and returns 204. Public image URLs load without an Authorization header. Admin can view/remove any photo.
+- Existing dedicated Rayeq Neon stores compressed bytes durably. No Render-disk reliance, no new account/service. Official free limits checked Nov 22, 2026: 1 GB Postgres/project, 100 CU-hours/month and 5 GB network/month. Resource caps can suspend access. Sources: https://neon.com/pricing and https://neon.com/blog/neon-free-plan-1-gb-per-project .

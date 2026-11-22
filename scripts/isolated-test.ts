@@ -1,7 +1,7 @@
 import {Pool} from 'pg';
 import {randomBytes} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-const suites=process.argv.slice(2);if(!suites.length||suites.some(s=>!['catalog-test','permission-test','profile-test','nearby-test'].includes(s)))throw Error('Select known test suites');
+const suites=process.argv.slice(2);if(!suites.length||suites.some(s=>!['catalog-test','permission-test','profile-test','nearby-test','reviews-test','gallery-test'].includes(s)))throw Error('Select known test suites');
 const uri=new URL(process.env.DATABASE_URL!);uri.hostname=uri.hostname.replace('-pooler.','.');
 const admin=new Pool({connectionString:uri.toString(),max:1,ssl:uri.hostname.endsWith('.neon.tech')?{rejectUnauthorized:true}:undefined});
 async function main(){
