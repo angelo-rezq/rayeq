@@ -10,6 +10,11 @@ export async function galleryRoute(req:Request,path:string,u:User):Promise<Respo
   const e=(await pool.query('SELECT id FROM rayeq_employees WHERE user_id=$1 AND active',[u.id])).rows[0];if(!e)fail(403,'WORKER_NOT_ACTIVE','حساب العامل غير مفعّل');if(method==='GET')return ok(await galleryFor(pool,e.id,undefined,true));
   await rateLimit('gallery-upload:'+u.id,10,3600);const demoSeed=await employeeDemoSeed(pool,e.id),photo=await readWorkPhoto(req);return ok(await storeWorkPhoto(u.id,e.id,photo,demoSeed,u.id),201);
  }
+ m=path.match(/^\/admin\/employees\/([^/]+)\/gallery$/);
+ if(m&&method==='POST'){
+  if(!uuid.safeParse(m[1]).success)fail(404,'NOT_FOUND','الموظف غير موجود');
+  await rateLimit('gallery-upload:'+u.id,30,3600);const seed=await employeeDemoSeed(pool,m[1]);const photo=await readWorkPhoto(req);return ok(await storeWorkPhoto(u.id,m[1],photo,seed),201);
+ }
  m=path.match(/^\/(worker|admin)\/gallery\/([^/]+)$/);
  if(m&&method==='DELETE'){
   if(!uuid.safeParse(m[2]).success)fail(404,'PHOTO_NOT_FOUND','الصورة غير موجودة');await tx(async db=>{const r=(await db.query('DELETE FROM rayeq_work_photos p USING rayeq_employees e WHERE p.id=$1 AND e.id=p.employee_id AND ($2::boolean OR e.user_id=$3) RETURNING p.employee_id',[m![2],m![1]==='admin',u.id])).rows[0];if(!r)fail(404,'PHOTO_NOT_FOUND','الصورة غير موجودة');await audit(db,u.id,'gallery.photo_removed',m![2],{employeeId:r.employee_id,admin:m![1]==='admin'})});return new Response(null,{status:204});
