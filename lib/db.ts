@@ -11,7 +11,11 @@ CREATE TABLE IF NOT EXISTS rayeq_profiles(user_id uuid PRIMARY KEY REFERENCES ra
 CREATE TABLE IF NOT EXISTS rayeq_settings(key text PRIMARY KEY,value jsonb NOT NULL);
 CREATE TABLE IF NOT EXISTS rayeq_services(id uuid PRIMARY KEY,name_ar text NOT NULL,description_ar text NOT NULL DEFAULT '',category text NOT NULL DEFAULT '',duration_minutes integer NOT NULL CHECK(duration_minutes BETWEEN 5 AND 480),price_minor integer NOT NULL CHECK(price_minor>=0),version integer NOT NULL DEFAULT 1,active boolean NOT NULL DEFAULT true);
 ALTER TABLE rayeq_services ADD COLUMN IF NOT EXISTS image_url text;
+ALTER TABLE rayeq_services ADD COLUMN IF NOT EXISTS name_en text NOT NULL DEFAULT '';
+ALTER TABLE rayeq_services ADD COLUMN IF NOT EXISTS description_en text NOT NULL DEFAULT '';
+ALTER TABLE rayeq_services ADD COLUMN IF NOT EXISTS category_en text NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS rayeq_areas(id uuid PRIMARY KEY,name_ar text NOT NULL,travel_fee_minor integer NOT NULL CHECK(travel_fee_minor>=0),version integer NOT NULL DEFAULT 1,active boolean NOT NULL DEFAULT true);
+ALTER TABLE rayeq_areas ADD COLUMN IF NOT EXISTS name_en text NOT NULL DEFAULT '';
 CREATE TABLE IF NOT EXISTS rayeq_employees(id uuid PRIMARY KEY,user_id uuid UNIQUE REFERENCES rayeq_users(id),name text NOT NULL,phone text NOT NULL DEFAULT '',active boolean NOT NULL DEFAULT true,service_ids uuid[] NOT NULL DEFAULT '{}',area_ids uuid[] NOT NULL DEFAULT '{}',salary_minor integer NOT NULL DEFAULT 0 CHECK(salary_minor>=0),created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS rayeq_bookings(id uuid PRIMARY KEY,reference text UNIQUE NOT NULL,customer_id uuid NOT NULL REFERENCES rayeq_users(id),employee_id uuid REFERENCES rayeq_employees(id),status text NOT NULL DEFAULT 'PENDING',requested_at timestamptz,start_at timestamptz,end_at timestamptz,version integer NOT NULL DEFAULT 1,document jsonb NOT NULL,internal_notes text NOT NULL DEFAULT '',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS rayeq_customer_bookings ON rayeq_bookings(customer_id,created_at DESC,id);
