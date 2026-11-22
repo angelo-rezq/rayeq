@@ -1,0 +1,1 @@
+This directory is deployed as a free static release host. It contains only release artifacts and a static download manifest, never secrets or source code. The in-app clock and update policy use the dynamic version API.
