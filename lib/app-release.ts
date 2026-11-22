@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import configuredRelease from '../config/app-release.json';
 
+export const appDownloadOrigins:ReadonlySet<string>=new Set(['https://rayeq-platform.onrender.com','https://rayeq-releases.onrender.com']);
 const utcTimestamp=z.string().datetime({offset:false});
 export const appReleaseSchema=z.object({
  publishedAt:utcTimestamp,
@@ -8,7 +9,7 @@ export const appReleaseSchema=z.object({
  latestBuild:z.number().int().min(1).max(2100000000),
  latestVersion:z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/).max(100),
  minSupportedBuild:z.number().int().min(1),
- apkUrl:z.string().url().max(2000).refine(value=>{try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.search&&!u.hash&&/^\/download\/[A-Za-z0-9._-]+\.apk$/.test(u.pathname)}catch{return false}}),
+ apkUrl:z.string().url().max(2000).refine(value=>{try{const u=new URL(value);return u.protocol==='https:'&&appDownloadOrigins.has(u.origin)&&!u.username&&!u.password&&!u.search&&!u.hash&&/^\/download\/[A-Za-z0-9._-]+\.apk$/.test(u.pathname)}catch{return false}}),
  sha256:z.string().regex(/^[a-f0-9]{64}$/),
  releaseNotesAr:z.string().trim().min(1).max(4000),
  releaseNotesEn:z.string().trim().min(1).max(4000).optional()
