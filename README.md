@@ -33,3 +33,10 @@ Render Free blocks SMTP ports 25/465/587. Set `MAILJET_API_KEY`, `MAILJET_SECRET
 
 ## Android pilot
 Matching Flutter source is in `rayeq-mobile/`, with its own build and verification notes. The versioned ARM64 APK is served at `/download/rayeq-pilot-arm64-1.0.0.apk` with Android MIME type and attachment disposition. SHA-256: `a895f9efecd4548da693b34b8fb32b9a42a4045fadec24d95a7566a682335091`, 19,331,403 bytes. This is a manually installed test build using a development signing certificate. Real-device installation, email delivery and complete registration-to-booking checks remain launch gates.
+
+## Isolated demo booking mode
+`npm run demo:seed` adds two explicitly labeled, zero-price demo services, one demo area, and qualifications for the existing test worker. It leaves normal public intake OFF. A separate, seven-day demo allowlist permits only the pre-verified pilot customer to book these demo IDs even while production email is unavailable. New demo bookings carry `document.demoSeed=rayeq-pilot-20261122`. It does not enable registration, verification-code bypass for other accounts, real prices, transfers or payments. The mobile app displays its demo warning and the catalog labels each test item. No APK rebuild is needed for server data.
+
+The matching Flutter UI is hosted at `/mobile-demo/` for browser-based screenshots. This is not proof of Android device installation or native runtime behavior.
+
+Review removal first: `npm run demo:reset`. Remove seeded bookings/catalog and stop demo access: `npm run demo:reset -- --confirm`. To also remove the two test accounts and test employee before launch: `npm run demo:reset -- --confirm --remove-test-accounts`. Financial or unrelated booking records cause removal to stop for inspection. The real administrator is preserved, public intake is closed, and audit history is retained. The seed manifest is stored under `rayeq_settings['demo:rayeq-pilot-20261122']`. These commands require the dedicated Rayeq database environment only.
