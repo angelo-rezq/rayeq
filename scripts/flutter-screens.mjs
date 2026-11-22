@@ -1,0 +1,4 @@
+import {chromium} from 'playwright';import {spawn} from 'node:child_process';
+const server=spawn('python3',['-m','http.server','3200','--directory','/downloads/rayeq-mobile/build/web'],{stdio:'ignore'});
+const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome-stable',headless:true,args:['--no-sandbox','--enable-webgl','--use-angle=swiftshader']});
+try{const page=await browser.newPage({viewport:{width:390,height:1000},deviceScaleFactor:2});for(const screen of ['splash','login','register','bookings','worker']){await page.goto('http://localhost:3200/?screen='+screen);await page.waitForSelector('flutter-view',{state:'attached',timeout:30000});await page.waitForTimeout(1500);await page.screenshot({path:'/downloads/rayeq-flutter-'+screen+'.png'});console.log(screen,'captured')}}finally{await browser.close();server.kill()}

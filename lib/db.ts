@@ -1,0 +1,22 @@
+import { Pool, PoolClient } from 'pg';
+export const pool = new Pool({connectionString:process.env.DATABASE_URL,max:5,ssl:process.env.DATABASE_URL?.includes('neon.tech')?{rejectUnauthorized:true}:undefined});
+export type DB = Pool|PoolClient;
+export async function tx<T>(fn:(db:PoolClient)=>Promise<T>):Promise<T>{const db=await pool.connect();try{await db.query('BEGIN');const result=await fn(db);await db.query('COMMIT');return result}catch(e){await db.query('ROLLBACK');throw e}finally{db.release()}}
+export async function migrate(){await pool.query(`
+CREATE TABLE IF NOT EXISTS rayeq_users(id uuid PRIMARY KEY,name text NOT NULL,email text UNIQUE NOT NULL,password_hash text NOT NULL,role text NOT NULL CHECK(role IN ('customer','worker_pending','worker','admin')),email_verified boolean NOT NULL DEFAULT false,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS rayeq_sessions(token_hash text PRIMARY KEY,user_id uuid NOT NULL REFERENCES rayeq_users(id),expires_at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS rayeq_codes(email text NOT NULL,purpose text NOT NULL,code_hash text NOT NULL,expires_at timestamptz NOT NULL,last_sent_at timestamptz NOT NULL DEFAULT now(),attempts integer NOT NULL DEFAULT 0,PRIMARY KEY(email,purpose));
+CREATE TABLE IF NOT EXISTS rayeq_limits(key text PRIMARY KEY,hits integer NOT NULL,expires_at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS rayeq_settings(key text PRIMARY KEY,value jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS rayeq_services(id uuid PRIMARY KEY,name_ar text NOT NULL,description_ar text NOT NULL DEFAULT '',category text NOT NULL DEFAULT '',duration_minutes integer NOT NULL CHECK(duration_minutes BETWEEN 5 AND 480),price_minor integer NOT NULL CHECK(price_minor>=0),version integer NOT NULL DEFAULT 1,active boolean NOT NULL DEFAULT true);
+CREATE TABLE IF NOT EXISTS rayeq_areas(id uuid PRIMARY KEY,name_ar text NOT NULL,travel_fee_minor integer NOT NULL CHECK(travel_fee_minor>=0),version integer NOT NULL DEFAULT 1,active boolean NOT NULL DEFAULT true);
+CREATE TABLE IF NOT EXISTS rayeq_employees(id uuid PRIMARY KEY,user_id uuid UNIQUE REFERENCES rayeq_users(id),name text NOT NULL,phone text NOT NULL DEFAULT '',active boolean NOT NULL DEFAULT true,service_ids uuid[] NOT NULL DEFAULT '{}',area_ids uuid[] NOT NULL DEFAULT '{}',salary_minor integer NOT NULL DEFAULT 0 CHECK(salary_minor>=0),created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS rayeq_bookings(id uuid PRIMARY KEY,reference text UNIQUE NOT NULL,customer_id uuid NOT NULL REFERENCES rayeq_users(id),employee_id uuid REFERENCES rayeq_employees(id),status text NOT NULL DEFAULT 'PENDING',requested_at timestamptz,start_at timestamptz,end_at timestamptz,version integer NOT NULL DEFAULT 1,document jsonb NOT NULL,internal_notes text NOT NULL DEFAULT '',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS rayeq_customer_bookings ON rayeq_bookings(customer_id,created_at DESC,id);
+CREATE INDEX IF NOT EXISTS rayeq_employee_bookings ON rayeq_bookings(employee_id,start_at,end_at);
+CREATE TABLE IF NOT EXISTS rayeq_idempotency(user_id uuid NOT NULL REFERENCES rayeq_users(id),key text NOT NULL,request_hash text NOT NULL,booking_id uuid NOT NULL REFERENCES rayeq_bookings(id),PRIMARY KEY(user_id,key));
+CREATE TABLE IF NOT EXISTS rayeq_audit(id bigserial PRIMARY KEY,actor_id uuid REFERENCES rayeq_users(id),action text NOT NULL,entity_id text NOT NULL,details jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS rayeq_payroll(id uuid PRIMARY KEY,employee_id uuid NOT NULL REFERENCES rayeq_employees(id),month text NOT NULL,base_minor integer NOT NULL CHECK(base_minor>=0),bonus_minor integer NOT NULL DEFAULT 0 CHECK(bonus_minor>=0),paid boolean NOT NULL DEFAULT false,note text NOT NULL DEFAULT '',UNIQUE(employee_id,month));
+INSERT INTO rayeq_settings(key,value) VALUES ('config','{"intakeEnabled":false,"isDemo":true,"support":{},"instapayInstructions":""}') ON CONFLICT DO NOTHING;
+`)}
+export async function audit(db:DB,actor:string,action:string,entity:string,details:unknown={}){await db.query('INSERT INTO rayeq_audit(actor_id,action,entity_id,details) VALUES($1,$2,$3,$4)',[actor,action,entity,JSON.stringify(details)])}
