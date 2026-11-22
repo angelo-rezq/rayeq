@@ -88,6 +88,8 @@ class RayeqApi {
   }) async {
     final req = http.Request(method, _url(path, query));
     req.headers['Accept'] = 'application/json';
+    if (path == 'app/version') req.headers['Cache-Control'] = 'no-cache';
+    final requestWait = Duration(seconds: path == 'app/version' ? 120 : 30);
     req.headers['Content-Type'] = 'application/json; charset=utf-8';
     if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
     if (idempotencyKey != null) req.headers['Idempotency-Key'] = idempotencyKey;
@@ -95,8 +97,8 @@ class RayeqApi {
     http.Response response;
     try {
       response = await http.Response.fromStream(
-        await _http.send(req).timeout(const Duration(seconds: 30)),
-      ).timeout(const Duration(seconds: 30));
+        await _http.send(req).timeout(requestWait),
+      ).timeout(requestWait);
     } catch (_) {
       throw const ApiFailure(
         'NETWORK_ERROR',
@@ -121,9 +123,12 @@ class RayeqApi {
           : 'REQUEST_FAILED';
       // Never expose arbitrary provider errors or server stack traces in the UI.
       final messages = <String, String>{
+        'REVIEW_ALREADY_EXISTS': 'الزيارة دي اتقيّمت قبل كده.',
+        'REVIEW_NOT_ELIGIBLE': 'التقييم متاح بعد اكتمال زيارتك فقط.',
         'EMAIL_NOT_VERIFIED': 'فعّل بريدك الإلكتروني الأول.',
         'INVALID_CREDENTIALS': 'الإيميل أو كلمة المرور مش صحيحة.',
         'WORKER_APPROVAL_PENDING': 'حساب الحلاق في انتظار موافقة الإدارة.',
+        'BARBER_UNAVAILABLE': 'الحلاق اللي اخترته مبقاش متاح. اختار حلاق تاني أو ابعت الطلب من غير اختيار.',
         'PRICE_CHANGED': 'السعر اتحدث. راجع السعر الجديد قبل تأكيد الطلب.',
         'INVALID_TRANSITION': 'حالة الزيارة اتغيرت. حدّث الصفحة وجرّب تاني.',
         'VALIDATION_ERROR': 'راجع البيانات المطلوبة وجرّب تاني.',
@@ -225,6 +230,45 @@ class RayeqApi {
 
   Future<void> deleteAvatar() async {
     await rawAvatar('DELETE');
+  }
+
+  Future<Map<String, dynamic>> uploadWorkPhoto(
+    Uint8List bytes,
+    String contentType,
+  ) async {
+    if (bytes.length > 5 * 1024 * 1024)
+      throw const ApiFailure('PHOTO_TOO_LARGE', 'الصورة أكبر من ٥ ميجا.');
+    final req = http.Request('POST', _url('worker/gallery'));
+    req.headers['Content-Type'] = contentType;
+    req.headers['Accept'] = 'application/json';
+    if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
+    req.bodyBytes = bytes;
+    http.Response response;
+    try {
+      response = await http.Response.fromStream(
+        await _http.send(req).timeout(const Duration(seconds: 45)),
+      ).timeout(const Duration(seconds: 45));
+    } catch (_) {
+      throw const ApiFailure('NETWORK_ERROR', 'تعذر الاتصال. جرّب تاني.');
+    }
+    if (response.statusCode == 401) await forgetSession();
+    if (response.statusCode < 200 || response.statusCode >= 300)
+      throw ApiFailure(
+        'GALLERY_ERROR',
+        response.statusCode == 413
+            ? 'الصورة أكبر من ٥ ميجا.'
+            : 'تعذر رفع صورة الشغل. جرّب تاني.',
+        status: response.statusCode,
+      );
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      return Map<String, dynamic>.from(decoded['data'] as Map);
+    } catch (_) {
+      throw const ApiFailure(
+        'INVALID_RESPONSE',
+        'الخدمة مش متاحة دلوقتي. جرّب بعد شوية.',
+      );
+    }
   }
 
   void close() => _http.close();

@@ -1,3 +1,4 @@
+import 'barber_profiles.dart';
 import 'about.dart';
 import 'localization.dart';
 import 'demo_data.dart';
@@ -77,7 +78,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
   }
 
   Future<void> edit() async {
-    final name = TextEditingController(text: displayProfileName(profile)),
+    final name = TextEditingController(text: '${profile['name'] ?? ''}'),
         phone = TextEditingController(text: '${profile['phone'] ?? ''}');
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -108,7 +109,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
               SizedBox(height: 12),
               Text(
                 tr('الإيميل ونوع الحساب مش قابلين للتغيير هنا.'),
-                style: TextStyle(fontSize: 11, color: royalMuted),
+                style: TextStyle(fontSize: 12, color: royalMuted),
               ),
             ],
           ),
@@ -218,7 +219,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: royalLine),
     ),
-    child: child,
+    child: Material(type: MaterialType.transparency, child: child),
   );
   Widget info(IconData icon, String label, String value) => Padding(
     padding: EdgeInsets.symmetric(vertical: 12),
@@ -233,9 +234,15 @@ class _ProfilePanelState extends State<ProfilePanel> {
             children: [
               Text(
                 tr(label),
-                style: TextStyle(color: royalMuted, fontSize: 11),
+                style: TextStyle(color: royalMuted, fontSize: 12),
               ),
-              Text(tr(value), style: TextStyle(fontSize: 14)),
+              Text(
+                tr(value),
+                textDirection: value.startsWith('+') || value.contains('@')
+                    ? TextDirection.ltr
+                    : null,
+                style: TextStyle(fontSize: 14),
+              ),
             ],
           ),
         ),
@@ -271,7 +278,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
                 padding: EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: royalGold.withValues(alpha: .6)),
+                  border: Border.all(color: royalProfileBlue, width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 43,
@@ -365,6 +372,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
             ],
           ),
         ),
+        if (role == 'worker') card(WorkerPortfolioCard(api: widget.api)),
         if (employee)
           card(
             Column(
@@ -377,7 +385,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
                 SizedBox(height: 12),
                 Text(
                   tr(
-                    'الإدارة بتسند الزيارات ليك. بيانات العملاء متاحة لمهامك فقط، وإكمال الزيارة مش تأكيد لتحصيل الدفع.',
+                    'الزيارات المسندة ليك بتظهر هنا. بيانات العملاء متاحة لمهامك فقط، وإكمال الزيارة مش تأكيد لتحصيل الدفع.',
                   ),
                   style: TextStyle(color: royalMuted, fontSize: 12),
                 ),
@@ -407,7 +415,7 @@ class _ProfilePanelState extends State<ProfilePanel> {
               ),
               Text(
                 tr('رقم الموبايل للتواصل فقط، ومش بديل لتفعيل الإيميل.'),
-                style: TextStyle(color: royalMuted, fontSize: 11),
+                style: TextStyle(color: royalMuted, fontSize: 12),
               ),
             ],
           ),

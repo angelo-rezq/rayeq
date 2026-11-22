@@ -40,4 +40,19 @@ void main() {
       expect(UpdateInfo.parse(m).downloadable, false);
     }
   });
+  test('only explicitly configured additional release host is allowed', () {
+    const host = String.fromEnvironment('UPDATE_DOWNLOAD_HOST');
+    for (final url in [
+      'https://rayeq-releases.onrender.com/a.apk',
+      'https://rayeq-releases.onrender.com.evil.invalid/a.apk',
+      'https://rayeq-releases.onrender.com:444/a.apk',
+    ]) {
+      final m = metadata()..['apkUrl'] = url;
+      expect(
+        UpdateInfo.parse(m).downloadable,
+        host == 'rayeq-releases.onrender.com' &&
+            url == 'https://rayeq-releases.onrender.com/a.apk',
+      );
+    }
+  });
 }

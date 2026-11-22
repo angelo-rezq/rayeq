@@ -1,3 +1,4 @@
+import 'nearby.dart';
 import 'localization.dart';
 
 import 'package:flutter/material.dart';
@@ -10,11 +11,13 @@ class ServiceDetails extends StatelessWidget {
   final Map<String, dynamic> service;
   final bool demo;
   final VoidCallback onBook;
+  final VoidCallback? onNearby;
   const ServiceDetails({
     super.key,
     required this.service,
     required this.demo,
     required this.onBook,
+    this.onNearby,
   });
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -56,7 +59,7 @@ class ServiceDetails extends StatelessWidget {
                     children: [
                       Text(
                         tr('سعر الخدمة'),
-                        style: TextStyle(color: royalMuted, fontSize: 11),
+                        style: TextStyle(color: royalMuted, fontSize: 12),
                       ),
                       Text(
                         tr(egp(service['priceMinor'])),
@@ -70,7 +73,7 @@ class ServiceDetails extends StatelessWidget {
                   ),
                   Column(
                     children: [
-                      Icon(Icons.schedule, color: royalPurple),
+                      Icon(Icons.schedule, color: royalGold),
                       Text(
                         tr('${service['durationMinutes']} دقيقة'),
                         style: TextStyle(fontSize: 12),
@@ -99,7 +102,7 @@ class ServiceDetails extends StatelessWidget {
             for (final step in [
               'اختار المكان والمعاد اللي تطلبه.',
               'راجع الإجمالي بعد اختيار المنطقة.',
-              'الإدارة تراجع وتأكد الزيارة وتسند العامل.',
+              'احجز مباشرة مع الحلاق المتاح، أو ابعت طلب ونختار لك.',
             ])
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 7),
@@ -123,12 +126,21 @@ class ServiceDetails extends StatelessWidget {
               ),
             SizedBox(height: 15),
             Text(
-              tr(
-                'رسوم الانتقال بتظهر قبل إرسال الطلب. الإدارة بتختار الحلاق المناسب لزيارتك.',
+              nearbyText(
+                'رسوم الانتقال بتظهر قبل الحجز. اختار حلاقك المتاح واحجز معاه مباشرة، أو ابعت طلب ونختار لك.',
+                'Travel fees are shown before booking. Choose an available barber to book directly, or send a request and we will assign one.',
               ),
-              style: TextStyle(fontSize: 11, color: royalMuted),
+              style: TextStyle(fontSize: 12, color: royalMuted),
             ),
             SizedBox(height: 25),
+            if (onNearby != null) ...[
+              FilledButton.icon(
+                onPressed: onNearby,
+                icon: const Icon(Icons.near_me_outlined),
+                label: Text(tr('دوّر على حلاق قريب مني')),
+              ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               height: 54,
               child: FilledButton(

@@ -1,3 +1,5 @@
+import 'barber_profiles.dart';
+import 'nearby.dart' show nearbyText;
 import 'localization.dart';
 import 'demo_data.dart';
 
@@ -125,9 +127,9 @@ class AccountProfile extends StatelessWidget {
     margin: EdgeInsets.only(top: 18),
     padding: EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: Color(0xff211a35),
+      color: Color(0xff1e1e24),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Color(0xff3b304f)),
+      border: Border.all(color: Color(0xff3c3c44)),
     ),
     child: child,
   );
@@ -144,7 +146,7 @@ class AccountProfile extends StatelessWidget {
             children: [
               Text(
                 tr(label),
-                style: TextStyle(fontSize: 11, color: Color(0xffb4aac8)),
+                style: TextStyle(fontSize: 12, color: Color(0xffb8b8bf)),
               ),
               Text(tr(value), style: TextStyle(fontSize: 14)),
             ],
@@ -174,14 +176,14 @@ class AccountProfile extends StatelessWidget {
                 ? 'حسابك ومساحة شغلك في مكان واحد.'
                 : 'تفاصيلك، على راحتك.',
           ),
-          style: TextStyle(color: Color(0xffb4aac8)),
+          style: TextStyle(color: Color(0xffb8b8bf)),
         ),
         section(
           Column(
             children: [
               CircleAvatar(
                 radius: 43,
-                backgroundColor: Color(0xff3b2d52),
+                backgroundColor: Color(0xff403927),
                 backgroundImage: imageUri?.scheme == 'https'
                     ? NetworkImage(image!)
                     : null,
@@ -305,7 +307,7 @@ class AccountProfile extends StatelessWidget {
                 tr(
                   'رقم الموبايل بيتطلب وقت الحجز للتواصل فقط، ومش بديل لتفعيل الإيميل.',
                 ),
-                style: TextStyle(fontSize: 11, color: Color(0xffb4aac8)),
+                style: TextStyle(fontSize: 12, color: Color(0xffb8b8bf)),
               ),
             ],
           ),
@@ -323,7 +325,7 @@ class AccountProfile extends StatelessWidget {
         Center(
           child: Text(
             tr('رايق · حلاقك عندك'),
-            style: TextStyle(color: Color(0xffb4aac8), fontSize: 12),
+            style: TextStyle(color: Color(0xffb8b8bf), fontSize: 12),
           ),
         ),
       ],
@@ -359,9 +361,9 @@ class _BookingDetailsState extends State<BookingDetails> {
     padding: EdgeInsets.all(20),
     margin: EdgeInsets.only(top: 16),
     decoration: BoxDecoration(
-      color: Color(0xff211a35),
+      color: Color(0xff1e1e24),
       borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: Color(0xff3b304f)),
+      border: Border.all(color: Color(0xff3c3c44)),
     ),
     child: child,
   );
@@ -373,11 +375,18 @@ class _BookingDetailsState extends State<BookingDetails> {
         Expanded(
           child: Text(
             tr(label),
-            style: TextStyle(color: Color(0xffb4aac8), fontSize: 12),
+            style: TextStyle(color: Color(0xffb8b8bf), fontSize: 12),
           ),
         ),
         SizedBox(width: 14),
-        Flexible(flex: 2, child: Text(tr(value), textAlign: TextAlign.end)),
+        Flexible(
+          flex: 2,
+          child: Text(
+            tr(value),
+            textAlign: TextAlign.end,
+            textDirection: value.startsWith('+') ? TextDirection.ltr : null,
+          ),
+        ),
       ],
     ),
   );
@@ -465,6 +474,41 @@ class _BookingDetailsState extends State<BookingDetails> {
                     ],
                   ),
                 ),
+                if (!widget.employee &&
+                    b['status'] == 'COMPLETED' &&
+                    b['canReview'] == true)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.star_outline_rounded),
+                      label: Text(nearbyText('قيّم زيارتك', 'Rate your visit')),
+                      onPressed: () async {
+                        final done = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ReviewComposer(
+                              maxCommentLength: 1000,
+                              onSubmit: (stars, text) async {
+                                await widget.api.post(
+                                  'bookings/${Uri.encodeComponent(widget.id)}/review',
+                                  {
+                                    'rating': stars,
+                                    if (text.isNotEmpty) 'text': text,
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                        if (done == true && mounted)
+                          setState(
+                            () => detail = widget.api.getMap(
+                              'bookings/${Uri.encodeComponent(widget.id)}',
+                            ),
+                          );
+                      },
+                    ),
+                  ),
                 card(
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,8 +572,8 @@ class _BookingDetailsState extends State<BookingDetails> {
                       Text(
                         tr('حالة الزيارة منفصلة عن حالة تحصيل الدفع.'),
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xffb4aac8),
+                          fontSize: 12,
+                          color: Color(0xffb8b8bf),
                         ),
                       ),
                     ],
@@ -568,8 +612,8 @@ class _BookingDetailsState extends State<BookingDetails> {
                                     Text(
                                       tr(cairoDate(h['at'])),
                                       style: TextStyle(
-                                        fontSize: 10,
-                                        color: Color(0xffb4aac8),
+                                        fontSize: 12,
+                                        color: Color(0xffb8b8bf),
                                       ),
                                     ),
                                   ],

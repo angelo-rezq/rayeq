@@ -42,8 +42,8 @@ class AboutRayeq extends StatelessWidget {
                   const SizedBox(height: 22),
                   Text(
                     aboutText(
-                      'رايق بيرتب لك خدمات الحلاقة والعناية الشخصية في بيتك أو مكان شغلك. اختار خدمتك واطلب ميعادك، وفريق رايق بيراجع التفاصيل ويأكد الزيارة.',
-                      'Rayeq helps you request barbering and grooming at home or work. Choose a service and requested time. The Rayeq team reviews the details and confirms each visit.',
+                      'رايق بيرتب لك خدمات الحلاقة والعناية الشخصية في بيتك أو مكان شغلك. اختار خدمتك وحلاقك المتاح واحجز معاه مباشرة. ولو مش محدد حلاق، الفريق بيختار لك.',
+                      'Rayeq helps you request barbering and grooming at home or work. Choose a service and an available barber to book directly. If you do not choose a barber, the team assigns one.',
                     ),
                     style: const TextStyle(fontSize: 14, height: 1.9),
                   ),
@@ -69,7 +69,7 @@ class AboutRayeq extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Text(
-              aboutText('تطوير هيكسا بلس', 'Developed by HEXA PLUS'),
+              'Developed by HEXA PLUS',
               textAlign: TextAlign.center,
               style: const TextStyle(color: royalMuted, fontSize: 12),
             ),
@@ -174,8 +174,15 @@ class PrivacyPolicy extends StatelessWidget {
                 Icons.phone_android_rounded,
                 'على جهازك',
                 'On your device',
-                'جلسة الدخول بتتحفظ على جهازك، وتسجيل الخروج بيمسح الجلسة من الجهاز. المحفوظات بتتخزن على نفس الجهاز ومش بتتزامن بين الأجهزة. التطبيق الحالي مش بيطلب الموقع الجغرافي أو بيانات بطاقة بنكية في مسار الحجز.',
-                'Your sign-in session is stored on your device. Signing out clears that device session. Favourites are stored on this device and do not sync between devices. The current booking flow does not request GPS location or bank-card details.',
+                'جلسة الدخول بتتحفظ على جهازك، وتسجيل الخروج بيمسح الجلسة من الجهاز. المحفوظات بتتخزن على نفس الجهاز ومش بتتزامن بين الأجهزة. الموقع اختياري وبيُطلب بضغطة منك للبحث عن حلاقين. بنرسل منطقة تقريبية فقط، ومش بنحفظ موقع العميل. التطبيق مش بيطلب بيانات بطاقة بنكية في مسار الحجز.',
+                'Your sign-in session is stored on your device. Signing out clears that device session. Favourites are stored on this device and do not sync between devices. Location is optional and requested only when you tap to find barbers. Only approximate coordinates are sent, and customer coordinates are not retained. The booking flow does not request bank-card details.',
+              ),
+              section(
+                Icons.my_location_rounded,
+                'توفر الحلاقين والموقع',
+                'Barber availability and location',
+                'الحلاق بيختار حالته بنفسه ويقدر يشارك منطقة تقريبية أو يمسحها. بنجدد الحالة والتطبيق ظاهر بعد التفعيل فقط. مفيش تتبع موقع في الخلفية. اختيار الحلاق بيتراجع عند الإرسال، والحجز بيتأكد مباشرة لو لسه متاح. المسافات تقريبية.',
+                'Barbers choose their own status and may share or clear a coarse area. Status refreshes only while the app is open after opting in. There is no background location tracking. The selected barber is rechecked at submission and the booking is confirmed directly if they are still available. Distances are approximate.',
               ),
               section(
                 Icons.tune_rounded,

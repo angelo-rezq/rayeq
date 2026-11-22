@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'demo_data.dart';
+import 'review_hub.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -29,7 +32,10 @@ class RayeqApp extends StatelessWidget {
       supportedLocales: const [Locale('ar', 'EG'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: rayeqTheme(),
-      home: AppUpdateGate(child: LiveShell(api: api)),
+      builder: rayeqBackdrop,
+      home: kIsWeb && previewFixturesEnabled && api == null
+          ? const ReviewHub()
+          : AppUpdateGate(child: LiveShell(api: api)),
     ),
   );
 }

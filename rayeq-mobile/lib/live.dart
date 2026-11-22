@@ -1,4 +1,6 @@
+import 'customer_home.dart';
 import 'about.dart';
+import 'nearby.dart';
 
 import 'package:flutter/services.dart';
 
@@ -23,13 +25,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LiveShell extends StatefulWidget {
   final RayeqApi? api;
-  const LiveShell({super.key, this.api});
+  final int initialTab;
+  final String? initialScreen;
+  final bool initialSchedule;
+  final bool initialWorker;
+  final String initialEmail;
+  const LiveShell({
+    super.key,
+    this.api,
+    this.initialTab = 0,
+    this.initialScreen,
+    this.initialSchedule = false,
+    this.initialWorker = false,
+    this.initialEmail = '',
+  });
   @override
   State<LiveShell> createState() => _LiveShellState();
 }
 
 class _LiveShellState extends State<LiveShell> {
   late final RayeqApi api;
+  late final WorkerAvailabilityController availability;
   final name = TextEditingController(),
       email = TextEditingController(),
       password = TextEditingController(),
@@ -46,13 +62,20 @@ class _LiveShellState extends State<LiveShell> {
   @override
   void initState() {
     super.initState();
+    tab = widget.initialTab;
+    worker = widget.initialWorker;
+    email.text = widget.initialEmail;
+    screen = widget.initialScreen ?? 'splash';
+    showSchedule = widget.initialSchedule;
     api = widget.api ?? RayeqApi();
+    availability = WorkerAvailabilityController(api);
     tzdata.initializeTimeZones();
     restore();
   }
 
   @override
   void dispose() {
+    availability.dispose();
     api.close();
     for (final c in [name, email, password, code]) {
       c.dispose();
@@ -74,6 +97,7 @@ class _LiveShellState extends State<LiveShell> {
           error = e.message;
           if (e.status == 401) {
             user = null;
+            availability.bindUser(null);
             bookings = [];
             catalog = null;
             screen = 'login';
@@ -103,6 +127,7 @@ class _LiveShellState extends State<LiveShell> {
   Future<void> refresh() async {
     if (user == null) return;
     user = await api.getMap('me');
+    availability.bindUser(user);
     if (user!['role'] == 'customer') catalog = await api.getMap('catalog');
     previewDataEnabled =
         previewFixturesEnabled &&
@@ -147,7 +172,12 @@ class _LiveShellState extends State<LiveShell> {
       children: [
         for (final value in [false, true])
           ChoiceChip(
-            label: Text(tr(value ? 'السابقة' : 'الحالية')),
+            label: Text(
+              tr(value ? 'السابقة' : 'الحالية'),
+              style: TextStyle(
+                color: past == value ? royalBackground : royalText,
+              ),
+            ),
             selected: past == value,
             onSelected: busy
                 ? null
@@ -317,7 +347,7 @@ class _LiveShellState extends State<LiveShell> {
     bool secret = false,
     TextInputType? keyboard,
   }) => Padding(
-    padding: EdgeInsets.only(top: 18),
+    padding: EdgeInsets.only(top: screen == 'login' ? 12 : 18),
     child: TextField(
       controller: c,
       obscureText: secret && !showPassword,
@@ -371,18 +401,18 @@ class _LiveShellState extends State<LiveShell> {
     margin: EdgeInsets.only(top: 18),
     padding: EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: Color(0xff211a35),
+      color: Color(0xff1e1e24),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Color(0xff3b304f)),
+      border: Border.all(color: Color(0xff3c3c44)),
     ),
-    child: child,
+    child: Material(type: MaterialType.transparency, child: child),
   );
   Widget heading(String title, String desc) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(tr(title), style: Theme.of(context).textTheme.headlineLarge),
       SizedBox(height: 8),
-      Text(tr(desc), style: TextStyle(color: Color(0xffb4aac8), height: 1.9)),
+      Text(tr(desc), style: TextStyle(color: Color(0xffb8b8bf), height: 1.9)),
     ],
   );
   void go(String target) {
@@ -407,168 +437,187 @@ class _LiveShellState extends State<LiveShell> {
       'reset',
     ].contains(screen);
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 82,
-        titleSpacing: 24,
-        title: Row(
-          children: [
-            Container(
-              width: 39,
-              height: 39,
-              decoration: BoxDecoration(
-                color: royalGold.withValues(alpha: .10),
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: royalGold.withValues(alpha: .35)),
-              ),
-              child: Icon(
-                Icons.content_cut_rounded,
-                color: royalGold,
-                size: 20,
-              ),
-            ),
-            SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: user?['role'] == 'customer' && tab == 0
+          ? null
+          : AppBar(
+              toolbarHeight: 82,
+              titleSpacing: 24,
+              title: Row(
                 children: [
-                  Text(
-                    tr('رايق'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 24,
-                      height: 1.2,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    width: 39,
+                    height: 39,
+                    decoration: BoxDecoration(
+                      color: royalGold.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(
+                        color: royalGold.withValues(alpha: .35),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.content_cut_rounded,
                       color: royalGold,
+                      size: 20,
                     ),
                   ),
-                  Text(
-                    tr('حلاقك عندك'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10, color: royalMuted),
+                  SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr('رايق'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 24,
+                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            color: royalGold,
+                          ),
+                        ),
+                        Text(
+                          tr('حلاقك عندك'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: royalMuted),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: tr('تغيير اللغة'),
-            onPressed: () => setAppLanguage(
-              appLocale.value.languageCode == 'ar' ? 'en' : 'ar',
-            ),
-            icon: const Icon(
-              Icons.language_rounded,
-              size: 21,
-              color: royalGold,
-            ),
-          ),
-          if (user != null)
-            PopupMenuButton<String>(
-              tooltip: tr('خيارات الحساب'),
-              icon: Icon(Icons.more_horiz_rounded, color: royalMuted),
-              onSelected: (v) {
-                if (v == 'refresh')
-                  run(refresh);
-                else if (v == 'profile')
-                  setState(() => tab = user?['role'] == 'customer' ? 4 : 2);
-                else if (v == 'about')
-                  Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute(builder: (_) => const AboutRayeq()));
-                else if (v == 'privacy')
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PrivacyPolicy()),
-                  );
-                else
-                  run(signOut);
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: 'profile',
-                  child: Text(tr('الملف الشخصي')),
+              actions: [
+                IconButton(
+                  tooltip: tr('تغيير اللغة'),
+                  onPressed: () => setAppLanguage(
+                    appLocale.value.languageCode == 'ar' ? 'en' : 'ar',
+                  ),
+                  icon: const Icon(
+                    Icons.language_rounded,
+                    size: 21,
+                    color: royalGold,
+                  ),
                 ),
-                PopupMenuItem(value: 'refresh', child: Text(tr('تحديث'))),
-                PopupMenuItem(value: 'about', child: Text(tr('عن رايق'))),
-                PopupMenuItem(
-                  value: 'privacy',
-                  child: Text(tr('سياسة الخصوصية')),
-                ),
-                PopupMenuItem(value: 'logout', child: Text(tr('تسجيل الخروج'))),
+                if (user != null)
+                  PopupMenuButton<String>(
+                    tooltip: tr('خيارات الحساب'),
+                    icon: Icon(Icons.more_horiz_rounded, color: royalMuted),
+                    onSelected: (v) {
+                      if (v == 'refresh')
+                        run(refresh);
+                      else if (v == 'profile')
+                        setState(
+                          () => tab = user?['role'] == 'customer' ? 4 : 2,
+                        );
+                      else if (v == 'about')
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AboutRayeq()),
+                        );
+                      else if (v == 'privacy')
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyPolicy(),
+                          ),
+                        );
+                      else
+                        run(signOut);
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'profile',
+                        child: Text(tr('الملف الشخصي')),
+                      ),
+                      PopupMenuItem(value: 'refresh', child: Text(tr('تحديث'))),
+                      PopupMenuItem(value: 'about', child: Text(tr('عن رايق'))),
+                      PopupMenuItem(
+                        value: 'privacy',
+                        child: Text(tr('سياسة الخصوصية')),
+                      ),
+                      PopupMenuItem(
+                        value: 'logout',
+                        child: Text(tr('تسجيل الخروج')),
+                      ),
+                    ],
+                  ),
+                SizedBox(width: 12),
               ],
             ),
-          SizedBox(width: 12),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 580),
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(24, 18, 24, 56),
-            children: [
-              if (busy) LinearProgressIndicator(),
-              if (error.isNotEmpty) RoyalNotice(message: error, error: true),
-              if (authPage)
-                Column(
-                  children: [
-                    if (screen != 'register') ...[
-                      Container(
-                        width: 62,
-                        height: 62,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: royalGold.withValues(alpha: .10),
-                          border: Border.all(
-                            color: royalGold.withValues(alpha: .4),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 580),
+            child: ListView(
+              key: ValueKey('$screen:$tab'),
+              padding: authPage
+                  ? const EdgeInsets.fromLTRB(16, 8, 16, 8)
+                  : const EdgeInsets.fromLTRB(24, 18, 24, 56),
+              children: [
+                if (busy) LinearProgressIndicator(),
+                if (error.isNotEmpty) RoyalNotice(message: error, error: true),
+                if (authPage)
+                  Column(
+                    children: [
+                      if (screen == 'verify') ...[
+                        Container(
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: royalGold.withValues(alpha: .10),
+                            border: Border.all(
+                              color: royalGold.withValues(alpha: .4),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.content_cut_rounded,
+                            color: royalGold,
+                            size: 27,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.content_cut_rounded,
-                          color: royalGold,
-                          size: 27,
+                        const SizedBox(height: 12),
+                        Text(
+                          tr('حلاقك عندك'),
+                          style: const TextStyle(
+                            color: royalGold,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: royalSurface.withValues(alpha: .8),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: royalLine),
+                        ),
+                        child: AutofillGroup(
+                          onDisposeAction: AutofillContextAction.cancel,
+                          child: authBody(),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        tr('حلاقك عندك'),
-                        style: const TextStyle(color: royalGold, fontSize: 12),
-                      ),
-                      const SizedBox(height: 24),
                     ],
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: royalSurface.withValues(alpha: .8),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: royalLine),
-                      ),
-                      child: AutofillGroup(
-                        onDisposeAction: AutofillContextAction.cancel,
-                        child: authBody(),
-                      ),
-                    ),
-                  ],
-                )
-              else if ((user?['role'] == 'customer' && tab == 4) ||
-                  (['worker', 'worker_pending'].contains(user?['role']) &&
-                      tab == 2))
-                profileBody()
-              else if (user?['role'] == 'customer' && tab == 3)
-                savedBody()
-              else if (user?['role'] == 'worker_pending')
-                pendingBody()
-              else if (user?['role'] == 'worker')
-                workerBody()
-              else if (user?['role'] == 'admin')
-                heading(
-                  'حساب إدارة',
-                  'لوحة الإدارة متاحة على الويب. استخدم حساب عميل للحجز.',
-                )
-              else
-                customerBody(),
-            ],
+                  )
+                else if ((user?['role'] == 'customer' && tab == 4) ||
+                    (['worker', 'worker_pending'].contains(user?['role']) &&
+                        tab == 2))
+                  profileBody()
+                else if (user?['role'] == 'customer' && tab == 3)
+                  savedBody()
+                else if (user?['role'] == 'worker_pending')
+                  pendingBody()
+                else if (user?['role'] == 'worker')
+                  workerBody()
+                else if (user?['role'] == 'admin')
+                  heading(
+                    'حساب إدارة',
+                    'لوحة الإدارة متاحة على الويب. استخدم حساب عميل للحجز.',
+                  )
+                else
+                  customerBody(),
+              ],
+            ),
           ),
         ),
       ),
@@ -688,8 +737,9 @@ class _LiveShellState extends State<LiveShell> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: (first ? royalGold : royalPurple)
-                                  .withValues(alpha: .15),
+                              color: (first ? royalGold : royalGold).withValues(
+                                alpha: .15,
+                              ),
                               blurRadius: 70,
                               spreadRadius: 25,
                             ),
@@ -700,7 +750,7 @@ class _LiveShellState extends State<LiveShell> {
                               ? Icons.content_cut
                               : Icons.calendar_month_outlined,
                           size: splash ? 46 : 65,
-                          color: first || splash ? royalGold : royalPurple,
+                          color: first || splash ? royalGold : royalGold,
                         ),
                       ),
                     ),
@@ -748,7 +798,7 @@ class _LiveShellState extends State<LiveShell> {
                         tr(
                           first
                               ? 'عناية مرتبة وتفاصيل تفرق. اختار خدمتك وسيب المشوار علينا.'
-                              : 'اختار خدمة ومكان ومعاد تطلبه. الإدارة تراجع وتأكد الزيارة معاك.',
+                              : 'اختار خدمتك وحلاقك المتاح واحجز معاه مباشرة، أو ابعت طلب ونختار لك.',
                         ),
                         style: TextStyle(
                           color: royalMuted,
@@ -987,16 +1037,31 @@ class _LiveShellState extends State<LiveShell> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        heading(
-          register
-              ? (worker ? 'انضم لفريق رايق' : 'حسابك الجديد')
-              : 'نورت رايق',
-          register
-              ? (worker
-                    ? 'خلّي خبرتك توصل لعملاء أكتر.'
-                    : 'اختار خدمتك واحجز زيارتك في خطوات بسيطة.')
-              : 'ادخل حسابك ورتّب وقت لنفسك.',
-        ),
+        if (!register) ...[
+          Text(
+            tr('نورت رايق'),
+            style: const TextStyle(
+              fontSize: 24,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr('ادخل حسابك ورتّب وقت لنفسك.'),
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.6,
+              color: royalMuted,
+            ),
+          ),
+        ] else
+          heading(
+            worker ? 'انضم لفريق رايق' : 'حسابك الجديد',
+            worker
+                ? 'خلّي خبرتك توصل لعملاء أكتر.'
+                : 'اختار خدمتك واحجز زيارتك في خطوات بسيطة.',
+          ),
         if (register) ...[
           const SizedBox(height: 22),
           accountTypeSelector(),
@@ -1025,7 +1090,7 @@ class _LiveShellState extends State<LiveShell> {
                     ),
                     style: const TextStyle(
                       color: royalMuted,
-                      fontSize: 11,
+                      fontSize: 12,
                       height: 1.7,
                     ),
                   ),
@@ -1053,7 +1118,7 @@ class _LiveShellState extends State<LiveShell> {
               ).push(MaterialPageRoute(builder: (_) => const PrivacyPolicy())),
               child: Text(
                 tr('سياسة الخصوصية'),
-                style: const TextStyle(color: royalMuted, fontSize: 11),
+                style: const TextStyle(color: royalMuted, fontSize: 12),
               ),
             ),
           ),
@@ -1108,6 +1173,7 @@ class _LiveShellState extends State<LiveShell> {
       if (mounted) {
         setState(() {
           user = null;
+          availability.bindUser(null);
           catalog = null;
           bookings = [];
           tab = 0;
@@ -1130,6 +1196,22 @@ class _LiveShellState extends State<LiveShell> {
     },
   );
   Widget customerBody() {
+    if (tab == 0)
+      return CustomerHome(
+        api: api,
+        user: user!,
+        catalog: catalog ?? {},
+        savedIds: savedIds,
+        onAccount: () => setState(() => tab = 4),
+        onServices: () => setState(() => tab = 1),
+        onLanguage: () =>
+            setAppLanguage(appLocale.value.languageCode == 'ar' ? 'en' : 'ar'),
+        onDemo: demoProfile,
+        onSave: toggleSaved,
+        onBook: (service, selection) =>
+            openBooking(service, preferred: selection),
+        onService: openService,
+      );
     if (tab == 2) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1151,9 +1233,10 @@ class _LiveShellState extends State<LiveShell> {
         ],
       );
     }
-    final all = (catalog?['services'] as List? ?? [])
+    final rawServices = (catalog?['services'] as List? ?? [])
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
+    final all = rawServices.where(catalogEnglishReady).toList();
     final categories = [
       'الكل',
       ...all
@@ -1268,7 +1351,18 @@ class _LiveShellState extends State<LiveShell> {
             children: categories
                 .map(
                   (c) => ChoiceChip(
-                    label: Text(displayCategory({'category': c})),
+                    label: Text(
+                      displayCategory(
+                        c == 'الكل'
+                            ? {'category': c}
+                            : all.firstWhere((s) => s['category'] == c),
+                      ),
+                      style: TextStyle(
+                        color: serviceCategory == c
+                            ? royalBackground
+                            : royalText,
+                      ),
+                    ),
                     selected: serviceCategory == c,
                     onSelected: (_) => setState(() => serviceCategory = c),
                   ),
@@ -1276,54 +1370,21 @@ class _LiveShellState extends State<LiveShell> {
                 .toList(),
           ),
         ],
-        if (previewFixturesEnabled &&
-            tab == 0 &&
-            catalog?['isDemo'] == true) ...[
-          SizedBox(height: 22),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                tr('حلاقين مميزين'),
-                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
-              ),
-              DemoBadge(),
-            ],
-          ),
-          SizedBox(height: 7),
-          Text(
-            tr('عناية بالتفاصيل، من أول الزيارة لآخر لمسة.'),
-            style: TextStyle(color: royalMuted, fontSize: 10),
-          ),
-          SizedBox(height: 14),
-          SizedBox(
-            height: 290,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: demoBarbers.length,
-              separatorBuilder: (_, _) => SizedBox(width: 13),
-              itemBuilder: (_, i) => DemoBarberCard(
-                barber: demoBarbers[i],
-                saved: savedIds.contains(demoBarbers[i]['id']),
-                onOpen: () => demoProfile(demoBarbers[i]),
-                onSave: () => toggleSaved(demoBarbers[i]['id']),
+        if (catalog?['intakeEnabled'] != true)
+          box(Text(tr('استقبال الطلبات مش متاح حاليًا.'))),
+        if (rawServices.length != all.length)
+          box(
+            Text(
+              tr(
+                'بعض الخدمات لسه تفاصيلها بالإنجليزي مش جاهزة. غيّر للعربي عشان تشوف كل الخدمات.',
               ),
             ),
           ),
-          SizedBox(height: 20),
-          Text(
-            tr('اختر خدمة'),
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-          ),
-        ],
-
-        if (catalog?['intakeEnabled'] != true)
-          box(Text(tr('استقبال الطلبات مش متاح حاليًا.'))),
-        if (all.isEmpty)
+        if (rawServices.isEmpty)
           box(Text(tr('الخدمات هتظهر هنا بعد تجهيزها من الإدارة.'))),
         if (all.isNotEmpty && list.isEmpty)
           box(Text(tr('مفيش خدمات مطابقة للبحث ده.'))),
-        for (final item in (tab == 0 ? list.take(3) : list))
+        for (final item in (tab == 0 ? all.take(3) : list))
           box(
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1351,7 +1412,7 @@ class _LiveShellState extends State<LiveShell> {
                     ),
                     Text(
                       tr('${item['durationMinutes']} دقيقة'),
-                      style: TextStyle(color: Color(0xffb4aac8), fontSize: 12),
+                      style: TextStyle(color: Color(0xffb8b8bf), fontSize: 12),
                     ),
                   ],
                 ),
@@ -1359,12 +1420,48 @@ class _LiveShellState extends State<LiveShell> {
               ],
             ),
           ),
+        if (previewFixturesEnabled &&
+            tab == 0 &&
+            catalog?['isDemo'] == true) ...[
+          SizedBox(height: 22),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                tr('حلاقين مميزين'),
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
+              ),
+              DemoBadge(),
+            ],
+          ),
+          SizedBox(height: 7),
+          Text(
+            tr('عناية بالتفاصيل، من أول الزيارة لآخر لمسة.'),
+            style: TextStyle(color: royalMuted, fontSize: 12),
+          ),
+          SizedBox(height: 14),
+          SizedBox(
+            height: 290,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: demoBarbers.length,
+              separatorBuilder: (_, _) => SizedBox(width: 13),
+              itemBuilder: (_, i) => DemoBarberCard(
+                barber: demoBarbers[i],
+                saved: savedIds.contains(demoBarbers[i]['id']),
+                onOpen: () => demoProfile(demoBarbers[i]),
+                onSave: () => toggleSaved(demoBarbers[i]['id']),
+              ),
+            ),
+          ),
+        ],
+
         if (all.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: 15),
             child: Text(
               tr(''),
-              style: TextStyle(fontSize: 10, color: Color(0xffb4aac8)),
+              style: TextStyle(fontSize: 12, color: Color(0xffb8b8bf)),
             ),
           ),
       ],
@@ -1376,6 +1473,20 @@ class _LiveShellState extends State<LiveShell> {
       builder: (_) => ServiceDetails(
         service: service,
         demo: catalog?['isDemo'] == true,
+        onNearby: () async {
+          final selected = await Navigator.of(context).push<NearbySelection>(
+            MaterialPageRoute(
+              builder: (_) => NearbyBarbersPage(
+                api: api,
+                service: service,
+                catalog: catalog!,
+              ),
+            ),
+          );
+          if (!mounted || selected == null) return;
+          Navigator.pop(context);
+          await openBooking(service, preferred: selected);
+        },
         onBook: () {
           Navigator.pop(context);
           openBooking(service);
@@ -1383,18 +1494,39 @@ class _LiveShellState extends State<LiveShell> {
       ),
     ),
   );
-  Future<void> openBooking(Map<String, dynamic> service) async {
-    if (catalog?['intakeEnabled'] != true) {
-      setState(() => error = 'استقبال الطلبات غير متاح حاليًا.');
-      return;
-    }
+  Future<void> openBooking(
+    Map<String, dynamic> service, {
+    NearbySelection? preferred,
+  }) async {
+    Map<String, dynamic>? current;
+    await run(() async {
+      catalog = await api.getMap('catalog');
+      if (catalog?['intakeEnabled'] != true) {
+        throw const ApiFailure(
+          'INTAKE_DISABLED',
+          'استقبال الطلبات غير متاح حاليًا.',
+        );
+      }
+      for (final item in catalog?['services'] as List? ?? []) {
+        if (item['id'] == service['id'])
+          current = Map<String, dynamic>.from(item);
+      }
+      if (current == null || !catalogEnglishReady(current!)) {
+        throw const ApiFailure(
+          'SERVICE_UNAVAILABLE',
+          'الخدمة غير متاحة حاليًا. حدّث القائمة واختار خدمة تانية.',
+        );
+      }
+    });
+    if (!mounted || current == null || error.isNotEmpty) return;
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => BookingForm(
           api: api,
-          service: service,
+          service: current!,
           catalog: catalog!,
           customerName: displayProfileName(user!),
+          preferred: preferred,
         ),
       ),
     );
@@ -1449,14 +1581,14 @@ class _LiveShellState extends State<LiveShell> {
                 ),
                 child: Text(
                   tr(status(b['status'])),
-                  style: const TextStyle(fontSize: 11, color: royalGold),
+                  style: const TextStyle(fontSize: 12, color: royalGold),
                 ),
               ),
               const Spacer(),
               Text(
                 '${b['reference'] ?? ''}',
                 textDirection: TextDirection.ltr,
-                style: const TextStyle(color: royalMuted, fontSize: 10),
+                style: const TextStyle(color: royalMuted, fontSize: 12),
               ),
             ],
           ),
@@ -1499,13 +1631,13 @@ class _LiveShellState extends State<LiveShell> {
             children: [
               Text(
                 tr('حالة الدفع'),
-                style: const TextStyle(color: royalMuted, fontSize: 11),
+                style: const TextStyle(color: royalMuted, fontSize: 12),
               ),
               const Spacer(),
               Flexible(
                 child: Text(
                   paymentStatusLabel(b['payment'] as Map? ?? {}),
-                  style: const TextStyle(fontSize: 11),
+                  style: const TextStyle(fontSize: 12),
                   textAlign: TextAlign.end,
                 ),
               ),
@@ -1564,6 +1696,7 @@ class _LiveShellState extends State<LiveShell> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       heading(showSchedule ? 'جدولي' : 'زياراتي', 'تابع زياراتك وحدّث حالتها.'),
+      if (showSchedule) WorkerAvailabilityPanel(controller: availability),
       const SizedBox(height: 18),
       if (showSchedule) ...[
         Text(tr('المواعيد المسندة خلال ٣٠ يومًا بتوقيت القاهرة.')),
@@ -1605,12 +1738,14 @@ class BookingForm extends StatefulWidget {
   final RayeqApi api;
   final Map<String, dynamic> service, catalog;
   final String customerName;
+  final NearbySelection? preferred;
   const BookingForm({
     super.key,
     required this.api,
     required this.service,
     required this.catalog,
     required this.customerName,
+    this.preferred,
   });
   @override
   State<BookingForm> createState() => _BookingFormState();
@@ -1627,8 +1762,9 @@ class _BookingFormState extends State<BookingForm> {
       directions = TextEditingController();
   late final TextEditingController name;
   String? areaId;
+  NearbySelection? preferred;
   String location = 'home', payment = 'cash', kind = 'scheduled', error = '';
-  bool busy = false, consent = false;
+  bool busy = false;
   DateTime? date;
   TimeOfDay? time;
   Map<String, dynamic>? quote;
@@ -1638,6 +1774,8 @@ class _BookingFormState extends State<BookingForm> {
   void initState() {
     super.initState();
     name = TextEditingController(text: widget.customerName);
+    preferred = widget.preferred;
+    areaId = preferred?.areaId;
   }
 
   @override
@@ -1665,6 +1803,7 @@ class _BookingFormState extends State<BookingForm> {
   }) => Padding(
     padding: EdgeInsets.only(top: 16),
     child: TextFormField(
+      key: ValueKey(label),
       controller: c,
       keyboardType: keyboard,
       validator: (s) =>
@@ -1678,12 +1817,122 @@ class _BookingFormState extends State<BookingForm> {
   String get timeString => time == null
       ? ''
       : '${time!.hour.toString().padLeft(2, '0')}:${time!.minute.toString().padLeft(2, '0')}';
+  String? get requestedInstant =>
+      kind == 'scheduled' && date != null && time != null
+      ? tz.TZDateTime(
+          tz.getLocation('Africa/Cairo'),
+          date!.year,
+          date!.month,
+          date!.day,
+          time!.hour,
+          time!.minute,
+        ).toUtc().toIso8601String()
+      : null;
+
+  Future<void> chooseBarber() async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = '';
+    });
+    Map<String, dynamic>? fresh;
+    try {
+      fresh = await widget.api.getMap('catalog');
+    } on ApiFailure catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'تعذر البحث عن حلاقين. جرّب تاني.');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+    if (!mounted || fresh == null) return;
+    final selected = await Navigator.of(context).push<NearbySelection>(
+      MaterialPageRoute(
+        builder: (_) => NearbyBarbersPage(
+          api: widget.api,
+          service: widget.service,
+          catalog: fresh!,
+          areaId: areaId,
+          requestedAt: requestedInstant,
+        ),
+      ),
+    );
+    if (mounted && selected != null)
+      setState(() {
+        preferred = selected;
+        if (selected.areaId != null) areaId = selected.areaId;
+      });
+  }
+
+  Future<void> recheckPreferred() async {
+    final chosen = preferred;
+    if (chosen == null) return;
+    final response = await widget.api.post('barbers/nearby', {
+      'serviceId': widget.service['id'],
+      'areaId': areaId,
+      if (chosen.location != null) ...chosen.location!,
+      if (requestedInstant != null) 'requestedAt': requestedInstant,
+    });
+    final found = (response['barbers'] as List? ?? []).any(
+      (b) => b['id'] == chosen.id && b['availabilityStatus'] == 'available',
+    );
+    if (!found) {
+      if (mounted) setState(() => preferred = null);
+      throw const ApiFailure(
+        'BARBER_UNAVAILABLE',
+        'الحلاق اللي اخترته مبقاش متاح. اختار حلاق تاني أو ابعت الطلب من غير اختيار.',
+      );
+    }
+  }
+
+  Map<String, dynamic> validateCurrentCatalog(
+    Map<String, dynamic> catalog, {
+    Map<String, dynamic>? quote,
+  }) {
+    if (catalog['intakeEnabled'] != true) {
+      throw const ApiFailure(
+        'INTAKE_DISABLED',
+        'استقبال الطلبات غير متاح حاليًا.',
+      );
+    }
+    Map<String, dynamic>? service, area;
+    for (final item in catalog['services'] as List? ?? []) {
+      if (item['id'] == widget.service['id'])
+        service = Map<String, dynamic>.from(item);
+    }
+    for (final item in catalog['areas'] as List? ?? []) {
+      if (item['id'] == areaId) area = Map<String, dynamic>.from(item);
+    }
+    if (service == null ||
+        area == null ||
+        !catalogEnglishReady(service) ||
+        !catalogEnglishReady(area)) {
+      throw const ApiFailure(
+        'CATALOG_CHANGED',
+        'تفاصيل الخدمة أو المنطقة اتغيرت. ارجع للقائمة وحدّث اختيارك.',
+      );
+    }
+    if (quote != null &&
+        (service['version'] != quote['serviceVersion'] ||
+            area['version'] != quote['areaVersion'])) {
+      throw const ApiFailure(
+        'PRICE_CHANGED',
+        'السعر اتحدث. راجع السعر الجديد قبل تأكيد الطلب.',
+      );
+    }
+    return service;
+  }
+
   Future<void> submit() async {
     if (busy || !form.currentState!.validate()) return;
     if (areaId == null ||
-        !consent ||
         (kind == 'scheduled' && (date == null || time == null))) {
-      setState(() => error = 'اختار المنطقة والمعاد ووافق على مراجعة الطلب.');
+      setState(
+        () => error = nearbyText(
+          'اختار المنطقة والمعاد الأول.',
+          'Choose an area, date and time first.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -1691,6 +1940,9 @@ class _BookingFormState extends State<BookingForm> {
       error = '';
     });
     try {
+      await recheckPreferred();
+      final freshCatalog = await widget.api.getMap('catalog');
+      final currentService = validateCurrentCatalog(freshCatalog);
       final q = await widget.api.post('quotes', {
         'serviceId': widget.service['id'],
         'areaId': areaId,
@@ -1706,7 +1958,7 @@ class _BookingFormState extends State<BookingForm> {
           title: Text(tr('راجع طلب الزيارة')),
           content: Text(
             tr(
-              '${tr(displayServiceName(widget.service))}\n${tr('الإجمالي')}: ${tr(egp(q['totalMinor']))}\n${tr('طريقة الدفع')}: ${tr(payment == 'cash' ? 'كاش' : 'إنستا باي للشركة')}\n${kind == 'scheduled' ? '$dateString • $timeString ${appLocale.value.languageCode == 'en' ? 'Cairo time' : 'بتوقيت القاهرة'}' : tr('في أقرب وقت، بعد المراجعة')}\n${tr('الطلب يتأكد بعد مراجعة الإدارة. كل الأوقات بتوقيت القاهرة.')}',
+              '${tr(displayServiceName({...currentService, 'nameEn': q['serviceNameEn'] ?? currentService['nameEn']}))}\n${tr('الإجمالي')}: ${tr(egp(q['totalMinor']))}\n${tr('طريقة الدفع')}: ${tr(payment == 'cash' ? 'كاش' : 'إنستا باي للشركة')}\n${preferred == null ? '' : '${nearbyText('الحلاق المطلوب', 'Requested barber')}: ${preferred!.name}\n'}${kind == 'scheduled' ? '$dateString • $timeString ${appLocale.value.languageCode == 'en' ? 'Cairo time' : 'بتوقيت القاهرة'}' : nearbyText('أقرب وقت متاح', 'As soon as available')}\n${tr('اختار حلاقك المتاح أو ابعت طلب ونختار لك حلاق. كل الأوقات بتوقيت القاهرة.')}',
             ),
           ),
           actions: [
@@ -1722,7 +1974,13 @@ class _BookingFormState extends State<BookingForm> {
         ),
       );
       if (yes != true) return;
+      final beforeBooking = await widget.api.getMap('catalog');
+      validateCurrentCatalog(beforeBooking, quote: q);
+      if (!mounted) return;
       final payload = <String, dynamic>{
+        if (preferred != null) 'preferredBarberId': preferred!.id,
+        if (preferred?.location != null)
+          'customerLocation': preferred!.location,
         'serviceId': widget.service['id'],
         'areaId': areaId,
         'serviceVersion': q['serviceVersion'],
@@ -1741,7 +1999,6 @@ class _BookingFormState extends State<BookingForm> {
         'bookingType': kind,
         'timezone': 'Africa/Cairo',
         'paymentMethod': payment,
-        'consent': true,
         if (kind == 'scheduled') 'localDate': dateString,
         if (kind == 'scheduled') 'localTime': timeString,
       };
@@ -1750,7 +2007,12 @@ class _BookingFormState extends State<BookingForm> {
         key = RayeqApi.idempotencyKey();
         pendingPayload = payload;
       }
-      await widget.api.post('bookings', payload, idempotencyKey: key);
+      final savedBooking = await widget.api.post(
+        'bookings',
+        payload,
+        idempotencyKey: key,
+      );
+      final directlyConfirmed = savedBooking['status'] == 'CONFIRMED';
       if (!mounted) return;
       await showDialog<void>(
         context: context,
@@ -1761,10 +2023,22 @@ class _BookingFormState extends State<BookingForm> {
           actionsOverflowButtonSpacing: 8,
           buttonPadding: const EdgeInsetsDirectional.only(start: 8),
           icon: Icon(Icons.check_circle_outline, color: royalGold, size: 52),
-          title: Text(tr('طلبك اتسجل')),
+          title: Text(
+            directlyConfirmed
+                ? nearbyText('حجزك اتأكد', 'Booking confirmed')
+                : tr('طلبك اتسجل'),
+          ),
           content: Text(
             tr(
-              'الإدارة هتراجع التفاصيل وتأكد الزيارة معاك. ده مش تأكيد توفر أو تحصيل دفع.',
+              directlyConfirmed
+                  ? nearbyText(
+                      'زيارتك اتسجلت مع الحلاق المختار. تقدر تتابع التفاصيل من حجوزاتي. مفيش أي مبلغ اتدفع.',
+                      'Your visit is booked with your chosen barber. Follow it in My bookings. No payment has been collected.',
+                    )
+                  : nearbyText(
+                      'طلبك اتسجل، والفريق هيختار لك حلاق ويتواصل معاك بالتفاصيل. مفيش أي مبلغ اتدفع.',
+                      'Your request is saved. The team will assign a barber and contact you with the details. No payment has been collected.',
+                    ),
             ),
           ),
           actions: [
@@ -1777,7 +2051,11 @@ class _BookingFormState extends State<BookingForm> {
       );
       if (mounted) Navigator.pop(context, true);
     } on ApiFailure catch (e) {
-      if (mounted) setState(() => error = e.message);
+      if (mounted)
+        setState(() {
+          error = e.message;
+          if (e.code == 'BARBER_UNAVAILABLE') preferred = null;
+        });
     } catch (_) {
       if (mounted) setState(() => error = 'تعذر إرسال الطلب. جرّب تاني.');
     } finally {
@@ -1785,9 +2063,54 @@ class _BookingFormState extends State<BookingForm> {
     }
   }
 
+  Widget bookingChoiceField({
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) => Material(
+    color: royalRaised,
+    borderRadius: BorderRadius.circular(12),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(icon, color: royalGold, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(color: royalMuted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.expand_more_rounded, color: royalMuted, size: 20),
+          ],
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final areas = widget.catalog['areas'] as List? ?? [];
+    final rawAreas = widget.catalog['areas'] as List? ?? [];
+    final areas = rawAreas.where((a) => catalogEnglishReady(a as Map)).toList();
     return Scaffold(
       appBar: AppBar(title: Text(tr('طلب زيارة'))),
       body: Center(
@@ -1806,20 +2129,65 @@ class _BookingFormState extends State<BookingForm> {
                   ),
                   Text(
                     tr(
-                      'الطلب يتأكد بعد مراجعة الإدارة. كل الأوقات بتوقيت القاهرة.',
+                      'اختار حلاقك المتاح أو ابعت طلب ونختار لك حلاق. كل الأوقات بتوقيت القاهرة.',
                     ),
                   ),
                   if (busy) LinearProgressIndicator(),
                   if (error.isNotEmpty)
                     RoyalNotice(message: error, error: true),
+                  const SizedBox(height: 16),
+                  if (preferred != null) ...[
+                    Text(
+                      '${nearbyText('الحلاق المطلوب', 'Requested barber')}: ${preferred!.name}',
+                      style: const TextStyle(color: royalGold),
+                    ),
+                    Text(
+                      nearbyText(
+                        'لو الحلاق لسه متاح وقت الإرسال، حجزك بيتأكد معاه مباشرة.',
+                        'If your barber is still available when you submit, your booking is confirmed directly with them.',
+                      ),
+                      style: const TextStyle(color: royalMuted, fontSize: 12),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => preferred = null),
+                      child: Text(
+                        nearbyText(
+                          'كمّل بدون اختيار حلاق',
+                          'Continue without choosing a barber',
+                        ),
+                      ),
+                    ),
+                  ],
+                  OutlinedButton.icon(
+                    onPressed: chooseBarber,
+                    icon: const Icon(Icons.near_me_outlined),
+                    label: Text(
+                      nearbyText(
+                        'دوّر على حلاق قريب مني',
+                        'Find barbers near me',
+                      ),
+                    ),
+                  ),
                   input('اسم العميل', name),
                   input(
                     'موبايل للتواصل فقط',
                     contact,
                     keyboard: TextInputType.phone,
                   ),
+                  if (rawAreas.length != areas.length)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        tr(
+                          'بعض المناطق لسه تفاصيلها بالإنجليزي مش جاهزة. غيّر للعربي عشان تشوف كل المناطق.',
+                        ),
+                        style: const TextStyle(color: royalMuted, fontSize: 12),
+                      ),
+                    ),
                   SizedBox(height: 16),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    key: const ValueKey('booking-area'),
                     initialValue: areaId,
                     decoration: InputDecoration(labelText: tr('منطقة الخدمة')),
                     items: areas
@@ -1830,7 +2198,13 @@ class _BookingFormState extends State<BookingForm> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => areaId = v),
+                    onChanged: (v) => setState(() {
+                      if (areaId != v && preferred != null) {
+                        preferred = null;
+                        error = 'المنطقة اتغيرت. اختار الحلاق تاني لو حابب.';
+                      }
+                      areaId = v;
+                    }),
                   ),
                   SizedBox(height: 16),
                   SegmentedButton<String>(
@@ -1850,6 +2224,8 @@ class _BookingFormState extends State<BookingForm> {
                   input('علامة مميزة', directions, required: false),
                   SizedBox(height: 16),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    key: const ValueKey('booking-kind'),
                     initialValue: kind,
                     decoration: InputDecoration(labelText: tr('نوع الزيارة')),
                     items: [
@@ -1859,69 +2235,57 @@ class _BookingFormState extends State<BookingForm> {
                       ),
                       DropdownMenuItem(
                         value: 'immediate',
-                        child: Text(tr('في أقرب وقت، بعد المراجعة')),
+                        child: Text(
+                          nearbyText('أقرب وقت متاح', 'As soon as available'),
+                        ),
                       ),
                     ],
                     onChanged: (v) => setState(() => kind = v!),
                   ),
                   if (kind == 'scheduled') ...[
-                    SizedBox(height: 20),
-                    Text(
-                      tr('اختار يوم تطلبه'),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: royalSurface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: royalLine),
-                      ),
-                      child: CalendarDatePicker(
-                        initialDate: date ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(Duration(days: 90)),
-                        onDateChanged: (d) => setState(() => date = d),
-                      ),
-                    ),
-                    Text(
-                      tr(
-                        'الأيام الظاهرة لا تعني توفر مواعيد. التأكيد بعد مراجعة الإدارة.',
-                      ),
-                      style: TextStyle(color: royalMuted, fontSize: 10),
-                    ),
-                    TextButton(
-                      onPressed: () async {
+                    const SizedBox(height: 16),
+                    bookingChoiceField(
+                      label: tr('اختار يوم تطلبه'),
+                      value: tr(date == null ? 'اختار اليوم' : dateString),
+                      icon: Icons.calendar_today_outlined,
+                      onTap: () async {
                         final now = DateTime.now();
                         final d = await showDatePicker(
                           context: context,
-                          initialDate: now,
+                          initialDate: date ?? now,
                           firstDate: now,
-                          lastDate: now.add(Duration(days: 90)),
+                          lastDate: now.add(const Duration(days: 90)),
                         );
                         if (d != null && mounted) setState(() => date = d);
                       },
-                      child: Text(
-                        tr(date == null ? 'اختار اليوم' : dateString),
-                      ),
                     ),
-                    TextButton(
-                      onPressed: () async {
+                    const SizedBox(height: 16),
+                    bookingChoiceField(
+                      label: nearbyText('الساعة المطلوبة', 'Requested time'),
+                      value: tr(time == null ? 'اختار الساعة' : timeString),
+                      icon: Icons.schedule_rounded,
+                      onTap: () async {
                         final t = await showTimePicker(
                           context: context,
-                          initialTime: TimeOfDay.now(),
+                          initialTime: time ?? TimeOfDay.now(),
                         );
                         if (t != null && mounted) setState(() => time = t);
                       },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
                       child: Text(
-                        tr(time == null ? 'اختار الساعة' : timeString),
+                        nearbyText(
+                          'الميعاد والتوفر بيتراجعوا وقت الحجز.',
+                          'Time and availability are checked when you book.',
+                        ),
+                        style: const TextStyle(color: royalMuted, fontSize: 12),
                       ),
                     ),
                   ],
                   SizedBox(height: 16),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: payment,
                     decoration: InputDecoration(labelText: tr('طريقة الدفع')),
                     items: [
@@ -1943,17 +2307,23 @@ class _BookingFormState extends State<BookingForm> {
                         ),
                       ),
                     ),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: consent,
-                    onChanged: (v) => setState(() => consent = v ?? false),
-                    title: Text(
-                      tr('فاهم إن ده طلب زيارة، والتأكيد بعد مراجعة الإدارة.'),
-                    ),
-                  ),
+                  const SizedBox(height: 20),
                   FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                    ),
                     onPressed: busy ? null : submit,
-                    child: Text(tr('مراجعة السعر وإرسال الطلب')),
+                    child: Text(
+                      preferred == null
+                          ? nearbyText(
+                              'مراجعة السعر وإرسال الطلب',
+                              'Review price and submit',
+                            )
+                          : nearbyText(
+                              'مراجعة السعر وحجز الزيارة',
+                              'Review price and book',
+                            ),
+                    ),
                   ),
                 ],
               ),

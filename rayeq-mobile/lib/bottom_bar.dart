@@ -26,7 +26,7 @@ class RoyalNavigationBar extends StatelessWidget {
           margin: EdgeInsets.fromLTRB(13, 0, 13, 10),
           padding: EdgeInsets.symmetric(horizontal: 5, vertical: 6),
           decoration: BoxDecoration(
-            color: Color(0xff1b152c),
+            color: Color(0xff19191e),
             borderRadius: BorderRadius.circular(21),
             border: Border.all(color: royalLine),
             boxShadow: [
@@ -86,8 +86,11 @@ class RoyalNavigationBar extends StatelessWidget {
                           SizedBox(height: 4),
                           Text(
                             tr(d.label),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 12,
                               color: selected ? royalGold : royalMuted,
                               fontWeight: selected
                                   ? FontWeight.w600

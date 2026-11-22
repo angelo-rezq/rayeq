@@ -53,6 +53,23 @@ String tr(String value) {
 }
 
 const english = <String, String>{
+  'الزيارة دي اتقيّمت قبل كده.': 'This visit has already been reviewed.',
+  'التقييم متاح بعد اكتمال زيارتك فقط.': 'You can review your visit after it is completed.',
+  'دوّر على حلاق قريب مني': 'Find barbers near me',
+  'الخدمة غير متاحة حاليًا. حدّث القائمة واختار خدمة تانية.': 'This service is currently unavailable. Refresh the list and choose another service.',
+  'تفاصيل الخدمة أو المنطقة اتغيرت. ارجع للقائمة وحدّث اختيارك.': 'Service or area details changed. Return to the list and refresh your choice.',
+  'شغّل خدمة الموقع أو اختار المنطقة يدويًا.':
+      'Turn on location services or choose an area manually.',
+  'الموقع مش متاح. تقدر تختار المنطقة يدويًا.':
+      'Location is unavailable. You can choose an area manually.',
+  'تعذر تحديد موقع حديث. جرّب تاني أو اختار المنطقة.':
+      'Could not get a recent location. Try again or choose an area.',
+  'تعذر البحث عن حلاقين. جرّب تاني.':
+      'Could not search for barbers. Try again.',
+  'الحلاق اللي اخترته مبقاش متاح. اختار حلاق تاني أو ابعت الطلب من غير اختيار.': 'Your chosen barber is no longer available. Choose another barber or send the request without choosing one.',
+  'المنطقة اتغيرت. اختار الحلاق تاني لو حابب.':
+      'The area changed. Choose a barber again if you want.',
+
   'حلاقك عندك': 'Your barber, at your door',
   'رايق': 'Rayeq',
   'الملف الشخصي': 'Profile',
@@ -145,7 +162,7 @@ const english = <String, String>{
   'احفظ خدماتك وحلاقينك المفضلين بعلامة القلب.':
       'Tap the heart to save your favourite services and barbers.',
   'محفوظة على الجهاز ده فقط، ومش بتحدد العامل المسند ليك.':
-      'Saved on this device. Your barber is assigned by our team.',
+      'Saved on this device only. This does not select a barber for your booking.',
   'تفاصيل الخدمة': 'Service details',
   'عن الخدمة': 'About this service',
   'المدة': 'Duration',
@@ -218,6 +235,10 @@ const english = <String, String>{
   'الإدارة هتراجع التفاصيل وتأكد الزيارة معاك. ده مش تأكيد توفر أو تحصيل دفع.': 'Our team will review and confirm the visit. Availability and payment are not yet confirmed.',
   'راجع الإجمالي بعد اختيار المنطقة.': 'Choose an area to review the total.',
   'الأيام الظاهرة لا تعني توفر مواعيد. التأكيد بعد مراجعة الإدارة.': 'Dates shown are not confirmed availability. Our team reviews every request.',
+  'اختار خدمتك وحلاقك المتاح واحجز معاه مباشرة، أو ابعت طلب ونختار لك.': 'Choose a service and an available barber to book directly, or send a request and we will assign one.',
+  'احجز مباشرة مع الحلاق المتاح، أو ابعت طلب ونختار لك.': 'Book directly with an available barber, or send a request and we will assign one.',
+  'الزيارات المسندة ليك بتظهر هنا. بيانات العملاء متاحة لمهامك فقط، وإكمال الزيارة مش تأكيد لتحصيل الدفع.': 'Your assigned visits appear here. Customer details are available only for your assigned work. Completing a visit does not confirm payment.',
+  'اختار حلاقك المتاح أو ابعت طلب ونختار لك حلاق. كل الأوقات بتوقيت القاهرة.': 'Choose an available barber, or send a request and we will assign one. All times are Cairo time.',
   'الطلب يتأكد بعد مراجعة الإدارة. كل الأوقات بتوقيت القاهرة.':
       'Requests are subject to confirmation. All times are Cairo time.',
   'حسابك وتفاصيلك، في مكان واحد.': 'Your account, in one place.',
@@ -270,6 +291,15 @@ const english = <String, String>{
   'نسخة جديدة من رايق': 'A new version of Rayeq',
   'التحديث مطلوب': 'Update required',
   'مش دلوقتي': 'Not now',
+  'نزّل دلوقتي': 'Download now',
+  'إعادة التحقق': 'Check again',
+  'جاري التحقق من إصدار التطبيق…': 'Checking app version…',
+  'تعذر التحقق من التحديثات. تقدر تكمل استخدام التطبيق.':
+      'Could not check for updates. You can keep using the app.',
+  'انتهت مهلة اليومين. حدّث رايق عشان تكمل.':
+      'The 2-day grace period has ended. Update Rayeq to continue.',
+  'تقدر تختار مش دلوقتي خلال أول يومين من نزول التحديث.':
+      'You can choose Not now during the first 2 days after release.',
   'تنزيل وتثبيت التحديث': 'Download and install',
   'متابعة التثبيت': 'Continue installation',
   'جاري تنزيل التحديث والتحقق من سلامته…':
@@ -286,6 +316,8 @@ const english = <String, String>{
 };
 
 const extraEnglish = <String, String>{
+  'بعض الخدمات لسه تفاصيلها بالإنجليزي مش جاهزة. غيّر للعربي عشان تشوف كل الخدمات.': 'Some services are hidden until their English details are ready. Switch to Arabic to see all services.',
+  'بعض المناطق لسه تفاصيلها بالإنجليزي مش جاهزة. غيّر للعربي عشان تشوف كل المناطق.': 'Some areas are hidden until their English details are ready. Switch to Arabic to see all areas.',
   'الموعد يتأكد مع الإدارة': 'Our team will confirm the time',
   'تفاصيلك، على راحتك.': 'Your details, your way.',
   'حساب تجربة': 'Account',

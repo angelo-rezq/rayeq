@@ -70,7 +70,7 @@ class MainActivity : FlutterActivity() {
     private fun download(address: String, expected: String, build: Long): File {
         require(expected.matches(Regex("^[a-fA-F0-9]{64}$")) && build > 0)
         val uri = Uri.parse(address)
-        require(uri.scheme == "https" && uri.host == "rayeq-platform.onrender.com" && uri.userInfo == null && (uri.port == -1 || uri.port == 443))
+        require(uri.scheme == "https" && uri.host in setOf("rayeq-platform.onrender.com", BuildConfig.UPDATE_DOWNLOAD_HOST) && uri.userInfo == null && (uri.port == -1 || uri.port == 443))
         val folder = File(cacheDir, "updates").apply { mkdirs() }
         folder.listFiles()?.filter { it.name.endsWith(".part.apk") }?.forEach { it.delete() }
         val partial = File(folder, "rayeq-$build.part.apk")

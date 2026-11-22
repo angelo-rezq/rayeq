@@ -90,6 +90,12 @@ String localizedContent(Map p, String ar, String en) {
 }
 
 String displayProfileName(Map<String, dynamic> p) {
+  final english = '${p['displayNameEn'] ?? ''}'.trim();
+  if (appLocale.value.languageCode == 'en' &&
+      english.isNotEmpty &&
+      !RegExp(r'[\u0600-\u06ff]').hasMatch(english)) {
+    return english;
+  }
   final name = '${p['name'] ?? ''}';
   if (!previewWords(name)) return previewAccount(p) ? fixtureText(name) : name;
   if (p['email'] == 'customer-test@rayeq.invalid')
@@ -99,27 +105,66 @@ String displayProfileName(Map<String, dynamic> p) {
   return name;
 }
 
+String catalogContent(Map p, String ar, String en, String fallback) {
+  if (appLocale.value.languageCode != 'en') return tr('${p[ar] ?? ''}');
+  final value = '${p[en] ?? ''}'.trim();
+  if (value.isNotEmpty && !RegExp(r'[\u0600-\u06ff]').hasMatch(value))
+    return value;
+  final translated = tr('${p[ar] ?? ''}').trim();
+  if (translated.isNotEmpty && !RegExp(r'[\u0600-\u06ff]').hasMatch(translated))
+    return translated;
+  return fallback;
+}
+
+bool catalogEnglishReady(Map p) {
+  if (appLocale.value.languageCode != 'en') return true;
+  if (p['englishReady'] == false) return false;
+  return catalogContent(p, 'nameAr', 'nameEn', '').isNotEmpty;
+}
+
 String displayServiceName(Map p) {
   final name = '${p['nameAr'] ?? ''}';
   if (previewDataEnabled && previewWords(name)) return tr('حلاقة وتصفيف');
-  return localizedContent(p, 'nameAr', 'nameEn');
+  return catalogContent(p, 'nameAr', 'nameEn', 'Service details pending');
 }
 
 String displayServiceDescription(Map p) {
   if (previewDataEnabled && previewWords(p['descriptionAr']))
     return tr('حلاقة مرتبة وتصفيف يناسبك، مع عناية بكل التفاصيل.');
-  return localizedContent(p, 'descriptionAr', 'descriptionEn');
+  return catalogContent(
+    p,
+    'descriptionAr',
+    'descriptionEn',
+    'English details are not available yet.',
+  );
 }
 
 String displayAreaName(Map p) {
   if (previewDataEnabled && previewWords(p['nameAr'])) return tr('الحي الأول');
-  return localizedContent(p, 'nameAr', 'nameEn');
+  return catalogContent(p, 'nameAr', 'nameEn', 'Area details pending');
 }
 
 String displayCategory(Map p) {
+  final category = '${p['category'] ?? ''}'.toLowerCase();
+  const knownAr = {
+    'hair': 'حلاقة',
+    'haircut': 'حلاقة',
+    'beard': 'الذقن',
+    'vip': 'VIP',
+  };
+  const knownEn = {
+    'hair': 'Haircut',
+    'haircut': 'Haircut',
+    'beard': 'Beard',
+    'vip': 'VIP',
+  };
+  if (knownAr.containsKey(category))
+    return appLocale.value.languageCode == 'ar'
+        ? knownAr[category]!
+        : knownEn[category]!;
   if (previewDataEnabled && previewWords(p['category']))
     return tr('عناية بالشعر');
-  return localizedContent(p, 'category', 'categoryEn');
+  return catalogContent(p, 'category', 'categoryEn', 'Services');
 }
 
 String displayCustomerName(Map b) {
@@ -175,12 +220,14 @@ class DemoBarberCard extends StatelessWidget {
   final Map<String, dynamic> barber;
   final bool saved;
   final VoidCallback onOpen, onSave;
+  final bool showPreviewLabel;
   const DemoBarberCard({
     super.key,
     required this.barber,
     required this.saved,
     required this.onOpen,
     required this.onSave,
+    this.showPreviewLabel = true,
   });
   @override
   Widget build(BuildContext context) => InkWell(
@@ -223,7 +270,31 @@ class DemoBarberCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Positioned(bottom: 8, right: 8, child: DemoBadge()),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: showPreviewLabel
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: royalBackground.withValues(alpha: .9),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            appLocale.value.languageCode == 'ar'
+                                ? 'نموذج'
+                                : 'Preview',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: royalGold,
+                            ),
+                          ),
+                        )
+                      : DemoBadge(),
+                ),
               ],
             ),
           ),
@@ -244,7 +315,7 @@ class DemoBarberCard extends StatelessWidget {
                   textDirection: appLocale.value.languageCode == 'ar'
                       ? TextDirection.rtl
                       : TextDirection.ltr,
-                  style: TextStyle(fontSize: 10, color: royalMuted),
+                  style: TextStyle(fontSize: 12, color: royalMuted),
                 ),
                 SizedBox(height: 8),
                 Row(
@@ -253,8 +324,20 @@ class DemoBarberCard extends StatelessWidget {
                     SizedBox(width: 3),
                     Text(
                       tr('${barber['rating']}'),
-                      style: TextStyle(fontSize: 9, color: royalGold),
+                      style: TextStyle(fontSize: 12, color: royalGold),
                     ),
+                    if (showPreviewLabel) ...[
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          '${barber['reviews']} ${appLocale.value.languageCode == 'ar' ? 'مراجعة' : 'reviews'}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: royalMuted,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -295,7 +378,10 @@ class DemoBarberPage extends StatelessWidget {
             SizedBox(height: 17),
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: DemoBadge(text: 'ملف تجريبي · الصورة ليست لعامل في رايق'),
+              child: Text(appLocale.value.languageCode == 'ar'
+                  ? 'معاينة · اسم وصورة وتقييمات نموذجية، مش حلاق فعلي في رايق.'
+                  : 'Preview: sample name, photo and ratings, not a real Rayeq worker.',
+                  style: const TextStyle(color: royalGold, fontSize: 12)),
             ),
             SizedBox(height: 12),
             Text(
@@ -337,7 +423,7 @@ class DemoBarberPage extends StatelessWidget {
                           ),
                           Text(
                             tr(item[1]),
-                            style: TextStyle(fontSize: 8, color: royalMuted),
+                            style: TextStyle(fontSize: 12, color: royalMuted),
                           ),
                         ],
                       ),
@@ -392,7 +478,7 @@ class DemoBarberPage extends StatelessWidget {
             SizedBox(height: 20),
             Text(
               tr('الإدارة بتختار الحلاق المناسب لخدمتك وموعدك.'),
-              style: TextStyle(fontSize: 11, color: royalMuted),
+              style: TextStyle(fontSize: 12, color: royalMuted),
             ),
             SizedBox(height: 16),
             SizedBox(

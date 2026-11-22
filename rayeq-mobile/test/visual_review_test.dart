@@ -33,7 +33,12 @@ void main() {
       appLocale.value = language == 'ar'
           ? const Locale('ar', 'EG')
           : const Locale('en');
-      for (final screen in ['about', 'privacy', 'update']) {
+      for (final screen in [
+        'about',
+        'privacy',
+        'update-optional',
+        'update-required',
+      ]) {
         final boundaryKey = GlobalKey();
         final navigatorKey = GlobalKey<NavigatorState>();
         await tester.pumpWidget(
@@ -46,12 +51,13 @@ void main() {
               supportedLocales: const [Locale('ar', 'EG'), Locale('en')],
               localizationsDelegates: GlobalMaterialLocalizations.delegates,
               theme: rayeqTheme(),
+              builder: rayeqBackdrop,
               home: const Scaffold(),
             ),
           ),
         );
         await tester.pumpAndSettle();
-        if (screen != 'update') {
+        if (!screen.startsWith('update')) {
           unawaited(
             navigatorKey.currentState!.push(
               MaterialPageRoute<void>(
@@ -63,12 +69,12 @@ void main() {
           );
           await tester.pumpAndSettle();
         }
-        if (screen == 'update') {
+        if (screen.startsWith('update')) {
           unawaited(
             showDialog<void>(
               context: navigatorKey.currentContext!,
-              builder: (_) => const UpdateDialog(
-                info: UpdateInfo(
+              builder: (_) => UpdateDialog(
+                info: const UpdateInfo(
                   3,
                   1,
                   '1.2.0',
@@ -77,7 +83,7 @@ void main() {
                   'تحسينات وتحديثات للتطبيق.',
                   'App improvements and updates.',
                 ),
-                requiredUpdate: false,
+                requiredUpdate: screen == 'update-required',
               ),
             ),
           );

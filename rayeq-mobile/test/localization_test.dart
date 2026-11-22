@@ -121,6 +121,33 @@ void main() {
       expect(RegExp(r'[\u0600-\u06ff]').hasMatch(tr(s)), false, reason: s);
     }
   });
+  test('catalog uses English fields and flags incomplete translations', () {
+    appLocale.value = const Locale('en');
+    final service = <String, dynamic>{
+      'nameAr': 'خدمة غير مترجمة محليًا',
+      'nameEn': 'Precision haircut',
+      'descriptionAr': 'وصف عربي',
+      'descriptionEn': 'A clean cut and finish.',
+      'category': 'عناية',
+      'categoryEn': 'Hair care',
+      'englishReady': true,
+    };
+    expect(displayServiceName(service), 'Precision haircut');
+    expect(displayServiceDescription(service), 'A clean cut and finish.');
+    expect(displayCategory(service), 'Hair care');
+    expect(catalogEnglishReady(service), true);
+    expect(catalogEnglishReady({...service, 'englishReady': false}), false);
+    expect(catalogEnglishReady({'nameAr': 'منطقة غير مترجمة'}), false);
+    expect(
+      RegExp(r'[\u0600-\u06ff]')
+          .hasMatch(displayServiceName({'nameAr': 'وصف غير معروف'})),
+      false,
+    );
+    appLocale.value = const Locale('ar', 'EG');
+    expect(catalogEnglishReady({...service, 'englishReady': false}), true);
+    expect(displayServiceName(service), 'خدمة غير مترجمة محليًا');
+  });
+
   test(
     'fixture presentation does not alter stored fields or commercial state',
     () {
