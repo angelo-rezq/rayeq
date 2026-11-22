@@ -23,7 +23,7 @@ Prefix `/api/v1`, JSON `{data:...}` and `{error:{code,message,fields}}`. See `do
 `npm run typecheck`, `npm run build`, `npm run test:permissions`. The permission suite creates temporary records on the configured dedicated database and removes them. Run only before launch or against an isolated test database because it temporarily opens intake for fixtures. It tests role restrictions, ownership, worker assignment, forward transitions, verification/replay, session revocation, server prices and parallel overlapping assignments.
 
 ## Deployment
-Private GitHub repo, Render Free Node service, Frankfurt, build `npm ci && npm run build`, start `npm start`. Neon Free database is separate from every unrelated project. Free Render services may sleep, leading to a slow first request. No guaranteed uptime is claimed for the pilot.
+Private GitHub repo, Render Free Node service, Frankfurt, build `npm ci --include=dev && npm run build`, start `npm start`. Neon Free database is separate from every unrelated project. Free Render services may sleep, leading to a slow first request. No guaranteed uptime is claimed for the pilot.
 
 ## Data protection and recovery
 All SQL is parameterized. Server owns roles and financial fields. Public catalog excludes private records. Mutations use DB-backed limits and audit trails. No secrets are committed. Neon currently shows 6-hour restore history on this Free project; arrange independent encrypted exports before live business use. No backup automation is claimed. Advanced discounts, reviews, push notifications, saved-address management, route optimization and full shift scheduling are outside today's slice.
