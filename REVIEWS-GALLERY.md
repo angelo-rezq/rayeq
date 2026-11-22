@@ -1,7 +1,7 @@
 # Ratings, reviews and work photos
 
 All JSON endpoints return `{data:...}` or `{error:{code,message,fields}}`.
-Ratings/reviews below are implemented first. Gallery is a separate rollout, not live until its deployment is verified.
+Ratings/reviews are live. Gallery is implemented and undergoing deployment verification; completion is reported separately.
 
 ## Reviews
 - Customer `POST /api/v1/bookings/:bookingId/review`, Bearer, `{rating:1..5,text?:string}`. Integer rating, optional trimmed plain text up to 1000 characters. Completed booking with an assigned barber, owned by this customer, once only. Booking row lock plus unique booking constraint prevents duplicate concurrent reviews. 201 returns `{id,rating,text,customerDisplayName,createdAt,demoOnly}`. Duplicate 409 `REVIEW_ALREADY_EXISTS`; ineligible 409 `REVIEW_NOT_ELIGIBLE`; another customer's booking 404.
@@ -12,7 +12,12 @@ Ratings/reviews below are implemented first. Gallery is a separate rollout, not 
 - Admin `GET /api/v1/admin/reviews?visibility=all|visible|hidden&limit=20&cursor=...`; adds employee/barber names, booking/reference, hidden and moderationReason to each review. `PATCH /api/v1/admin/reviews/:id`, `{hidden:boolean,reason?:string<=500}`. Hidden reviews leave public lists and aggregates immediately; unhide restores them. Moderation is audited. An author cannot replace a hidden review.
 - Demo reviews carry `demoOnly:true`, require an existing completed demo booking, and are included only in an active allowlisted demo customer's aggregates (and the demo worker's own rating). They do not inflate normal ratings. `scripts/demo-reviews.ts` seeds one explicitly fictional review, not fabricated real customer praise. `demo-reset` checks ownership before including reviews in its dry-run and future approved cleanup. Never execute launch reset without explicit approval.
 
-## Planned gallery contract
+## Gallery contract
 - `GET /api/v1/barbers/:id/gallery` and worker `GET /api/v1/worker/gallery`: `{items:[{id,url,width,height,byteSize,createdAt,demoOnly}],maxPhotos:6}`. Barber detail includes `gallery` using this shape.
 - Worker `POST /api/v1/worker/gallery`: raw binary body, Content-Type `image/jpeg`, `image/png`, or `image/webp`, not multipart/JSON. Max 5 MiB, 16 megapixels, static only. Re-encode server-side to metadata-free WebP, max long edge 1600, output at most 250 KiB. Six photos per barber, a 60 MiB gallery storage budget for this pilot. `DELETE /api/v1/worker/gallery/:photoId` removes own photo and returns 204. Public image URLs load without an Authorization header. Admin can view/remove any photo.
 - Existing dedicated Rayeq Neon stores compressed bytes durably. No Render-disk reliance, no new account/service. Official free limits checked Nov 22, 2026: 1 GB Postgres/project, 100 CU-hours/month and 5 GB network/month. Resource caps can suspend access. Sources: https://neon.com/pricing and https://neon.com/blog/neon-free-plan-1-gb-per-project .
+
+- Upload returns 201 `{data:photo}`. Worker upload limit is 10 per hour. Errors: 415 `UNSUPPORTED_IMAGE_TYPE`, 413 `IMAGE_TOO_LARGE`, 400 `INVALID_IMAGE`, 429 `IMAGE_PROCESSOR_BUSY` or `RATE_LIMITED`, 409 `GALLERY_FULL` / `DEMO_EXPIRED`, 507 `GALLERY_STORAGE_FULL`.
+- Admin `GET /api/v1/admin/gallery?limit=20&cursor=...&employeeId=...` returns paginated items with barber names, `employeeId`, `adminUrl`, and `{storage:{bytesUsed,maxBytes},maxPhotosPerBarber:6}`. `adminUrl` is same-origin and authenticated, so admins can inspect inactive/expired photos that are no longer served publicly. `DELETE /api/v1/admin/gallery/:photoId` returns 204. Removals are audited; deleted public URLs return 404 even with an old ETag.
+- Active demo work photos are explicitly public image URLs, while discovery is restricted to the demo allowlist. Expired demo photos stop serving. All demo rows are seed-marked; cleanup validates their employee ownership and blocks on unrelated non-demo photos before removing employees. Cleanup remains dry-run until explicit launch-reset approval.
+- Actual Rayeq Neon Free/$0 plan confirmed in the console on Nov 22, 2026, with 34.27 MB reported storage and one branch. Console metrics can lag an hour. Plan page: https://console.neon.tech/app/org-divine-sun-30150815/billing .

@@ -1,3 +1,4 @@
+import {galleryFor} from './gallery-storage';
 import {z} from 'zod';
 import {randomUUID} from 'node:crypto';
 import {DB,pool,tx,audit} from './db';
@@ -43,7 +44,7 @@ export async function contentRoute(req:Request,path:string,u:User,readBody:<T>(r
  m=path.match(/^\/barbers\/([^/]+)(\/reviews)?$/);
  if(m&&method==='GET'){
   const d=await visibleBarbers(pool,u,m[1]),barber=d.rows[0],rating=(await ratingSummaryMany(pool,[barber.id],d.demoSeed))[barber.id];
-  if(!m[2])return ok({id:barber.id,nameAr:barber.name,nameEn:barber.name_en||'',...rating,demoOnly:d.demoIds.includes(barber.id)});
+  if(!m[2])return ok({id:barber.id,nameAr:barber.name,nameEn:barber.name_en||'',...rating,demoOnly:d.demoIds.includes(barber.id),gallery:await galleryFor(pool,barber.id,d.demoSeed)});
   const q=pageQuery(req),r=(await pool.query(`SELECT r.* FROM rayeq_reviews r WHERE r.employee_id=$1 AND (r.demo_seed IS NULL OR r.demo_seed=$2) AND NOT r.hidden ${q.clause} ORDER BY r.created_at DESC,r.id DESC LIMIT $${q.after.length?5:3}`,[barber.id,d.demoSeed||null,...q.after,q.limit+1])).rows,page=pageResult(r,q.limit);return ok({...page,items:page.items.map(publicReview),...rating});
  }
  if(path==='/admin/reviews'&&method==='GET'){

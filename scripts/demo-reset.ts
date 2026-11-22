@@ -33,11 +33,15 @@ async function main(){console.log(JSON.stringify(await tx(async db=>{
  const reviewRows=(await db.query('SELECT id,booking_id,customer_id,employee_id FROM rayeq_reviews WHERE demo_seed=$1 FOR UPDATE',[seedId])).rows;
  if(reviewRows.some(r=>!ids.includes(r.booking_id)||r.customer_id!==m.customerId||!employeeIds.includes(r.employee_id)))throw Error('Demo review ownership changed; inspect before wiping');
  if((await db.query("SELECT id FROM rayeq_reviews WHERE (booking_id=ANY($1::uuid[]) OR employee_id=ANY($2::uuid[]) OR ($3::boolean AND customer_id=$4)) AND COALESCE(demo_seed,'')<>$5 LIMIT 1",[ids,removedEmployeeIds,removeAccounts,m.customerId,seedId])).rowCount)throw Error('Non-demo review references demo records; inspect before wiping');
- const report={dryRun:!confirm,seedId,bookings:ids.length,reviews:reviewRows.length,nearbyPreviews:Array.isArray(m.nearbyBarbers)?m.nearbyBarbers.length:0,nearbyEmployees:virtualRows.length,services:m.serviceIds.length,areas:m.areaIds.length,removeTestAccounts:removeAccounts,testAccounts:removeAccounts?users.length:0,testEmployees:pilotEmployeeCount+virtualRows.length,cleanLaunch,publicIntakeAfter:false,isDemoAfter:cleanLaunch?false:c.isDemo,auditHistoryRetained:true};
+ const photoRows=(await db.query('SELECT id,employee_id FROM rayeq_work_photos WHERE demo_seed=$1 FOR UPDATE',[seedId])).rows;
+ if(photoRows.some(p=>!employeeIds.includes(p.employee_id)))throw Error('Demo photo ownership changed; inspect before wiping');
+ if((await db.query("SELECT id FROM rayeq_work_photos WHERE employee_id=ANY($1::uuid[]) AND COALESCE(demo_seed,'')<>$2 LIMIT 1",[removedEmployeeIds,seedId])).rowCount)throw Error('Non-demo work photos reference demo employees; inspect before wiping');
+ const report={dryRun:!confirm,seedId,bookings:ids.length,reviews:reviewRows.length,workPhotos:photoRows.length,nearbyPreviews:Array.isArray(m.nearbyBarbers)?m.nearbyBarbers.length:0,nearbyEmployees:virtualRows.length,services:m.serviceIds.length,areas:m.areaIds.length,removeTestAccounts:removeAccounts,testAccounts:removeAccounts?users.length:0,testEmployees:pilotEmployeeCount+virtualRows.length,cleanLaunch,publicIntakeAfter:false,isDemoAfter:cleanLaunch?false:c.isDemo,auditHistoryRetained:true};
  if(!confirm)return report;
  c.intakeEnabled=false;delete c.demoPilot;if(cleanLaunch)c.isDemo=false;
  await db.query('DELETE FROM rayeq_idempotency WHERE booking_id=ANY($1::uuid[])',[ids]);
  await db.query('DELETE FROM rayeq_reviews WHERE id=ANY($1::uuid[])',[reviewRows.map(r=>r.id)]);
+ await db.query('DELETE FROM rayeq_work_photos WHERE id=ANY($1::uuid[])',[photoRows.map(p=>p.id)]);
  await db.query('DELETE FROM rayeq_bookings WHERE id=ANY($1::uuid[])',[ids]);
  await db.query('UPDATE rayeq_employees SET service_ids=$1,area_ids=$2 WHERE id=$3',[m.previousServiceIds,m.previousAreaIds,m.employeeId]);
  await db.query('DELETE FROM rayeq_employees WHERE id=ANY($1::uuid[]) AND user_id IS NULL',[virtualIds]);
