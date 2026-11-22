@@ -4,6 +4,7 @@ export type DB = Pool|PoolClient;
 export async function tx<T>(fn:(db:PoolClient)=>Promise<T>):Promise<T>{const db=await pool.connect();try{await db.query('BEGIN');const result=await fn(db);await db.query('COMMIT');return result}catch(e){await db.query('ROLLBACK');throw e}finally{db.release()}}
 export async function migrate(){await pool.query(`
 CREATE TABLE IF NOT EXISTS rayeq_users(id uuid PRIMARY KEY,name text NOT NULL,email text UNIQUE NOT NULL,password_hash text NOT NULL,role text NOT NULL CHECK(role IN ('customer','worker_pending','worker','admin')),email_verified boolean NOT NULL DEFAULT false,created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE rayeq_users ADD COLUMN IF NOT EXISTS email_verification_bypassed boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS rayeq_sessions(token_hash text PRIMARY KEY,user_id uuid NOT NULL REFERENCES rayeq_users(id),expires_at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS rayeq_codes(email text NOT NULL,purpose text NOT NULL,code_hash text NOT NULL,expires_at timestamptz NOT NULL,last_sent_at timestamptz NOT NULL DEFAULT now(),attempts integer NOT NULL DEFAULT 0,PRIMARY KEY(email,purpose));
 CREATE TABLE IF NOT EXISTS rayeq_limits(key text PRIMARY KEY,hits integer NOT NULL,expires_at timestamptz NOT NULL);
