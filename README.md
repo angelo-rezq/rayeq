@@ -6,7 +6,7 @@ Node 22+. `npm ci`, configure `.env.local` from `.env.example`, then `npm run de
 Production: `npm run build`, then `npm start`. The startup migration touches only `rayeq_` tables in the configured dedicated database.
 
 ## Admin
-Set `ADMIN_EMAIL` and a strong `BOOTSTRAP_TOKEN` in server environment. Visit `/setup`, enter the token and a new password. Bootstrap can create only the first admin. Remove `BOOTSTRAP_TOKEN` after successful setup. Login is at `/dashboard` with HttpOnly, SameSite=Strict cookie sessions. Native mobile uses the same login response's Bearer token. Sessions are hashed in Postgres and expire in 7 days. Passwords use scrypt with per-user salt.
+The first administrator was created through a one-time setup flow. The bootstrap HTTP routes have now been removed. Administrator ownership and credentials are held privately, never in this repository. Login is at `/dashboard` with HttpOnly, SameSite=Strict cookie sessions. Native mobile uses the same login response's Bearer token. Sessions are hashed in Postgres and expire in 7 days. Passwords use scrypt with per-user salt.
 
 ## Launch gate
 No invented catalog is seeded. Intake defaults off. Add approved services, areas, employees, and optional verified support/transfer instructions. Configure SMTP and test delivery before enabling intake. SMTP is vendor-neutral and can switch to Mailjet through environment variables alone. No SMTP means registration fails closed with 503. No verification codes or passwords are echoed or logged. `RAYEQ_TEST_MODE=1` is for isolated automated tests only, never production. It writes test email codes to a mode-0600 temporary test mailbox.
