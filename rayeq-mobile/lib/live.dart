@@ -321,14 +321,25 @@ class _LiveShellState extends State<LiveShell> {
       if (name.text.trim().isEmpty) {
         throw ApiFailure('VALIDATION', 'اكتب اسمك الأول.');
       }
-      await api.post('auth/register', {
+      final registered = await api.post('auth/register', {
         'name': name.text.trim(),
         'email': e,
         'password': password.text,
         'accountType': worker ? 'worker' : 'customer',
       });
-      clearAuthInputs();
-      screen = 'verify';
+      final nestedSession = registered['session'];
+      final sessionData = nestedSession is Map
+          ? Map<String, dynamic>.from(nestedSession)
+          : registered;
+      final token = sessionData['token'];
+      if (registered['next'] == 'login') {
+        await session(registered);
+      } else if (token is String && token.isNotEmpty) {
+        await session(sessionData);
+      } else {
+        clearAuthInputs();
+        screen = 'verify';
+      }
     } else {
       try {
         await session(

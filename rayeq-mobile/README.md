@@ -15,7 +15,7 @@ flutter build apk --release --target-platform android-arm64 \
   --dart-define=UPDATE_DOWNLOAD_HOST=rayeq-releases.onrender.com
 ```
 
-Package `com.rayeq.rayeq`. Source version `1.1.1+3`. ARM64-only, target SDK 36. Native libraries use legacy extraction. Build 3 was approved and compiled as a signed ARM64 APK. Package, version, APK v2 signature, ZIP integrity/alignment and the retained build-2 certificate were verified. Real-device installation and upgrade remain untested.
+Package `com.rayeq.rayeq`. Source version `1.1.2+4`. ARM64-only, target SDK 36. Native libraries use legacy extraction. Build 3 was approved and compiled as a signed ARM64 APK. Package, version, APK v2 signature, ZIP integrity/alignment and the retained build-2 certificate were verified. Real-device installation and upgrade remain untested.
 
 PREVIEW_FIXTURES defaults to false. Add `--dart-define=PREVIEW_FIXTURES=true` only for the requested review build. It enables labelled demo profiles and known bilingual samples. It never deletes backend data. The web review build opens a labelled customer/worker/auth screen index with an isolated sample adapter. Native builds open the connected app, not that index.
 
@@ -61,3 +61,7 @@ The optional period is 48 hours from publication, followed by the required-updat
 Automated tests cover transport/session behavior, role boundaries, preview isolation, language/layout, update grace/offline behavior, booking rechecks, independent public-profile loading, editable worker fields, raw portrait upload, customer account bio save/clear and worker-only booking display, saved public profiles and native share content. Visual tests render 320, 390 and 430px app layouts in Arabic and English; screenshots are written under the temporary rayeq-visual-review folder.
 
 A passing suite is not a real-device or full live-service acceptance test. Build-3 native compilation and static package/signature checks passed after screenshot approval. Device install/upgrade testing and native-device smoke tests of profile editing and sharing remain required. Free-tier backend cold starts can delay live responses.
+
+## Build 4 registration response
+
+Registration follows the server result. HTTP 202 with next:login returns to sign-in with the email kept and password/code cleared. A returned token session loads the server account; verification responses still open the code screen. No temporary verification bypass or worker approval is implemented on the device. The server owns both controls. Build 4 retains the build-2/build-3 signing certificate, and versionCode 4 supersedes 3. Native installation/upgrade is not tested on a real device.
