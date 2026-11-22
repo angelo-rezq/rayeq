@@ -1,34 +1,52 @@
 # Rayeq mobile
 
-Flutter customer and worker pilot for رايق, حلاقك عندك.
+Flutter customer and worker app for رايق, حلاقك عندك. Android is the tested build target. The admin dashboard is a separate web app.
 
 ## Build
 
-Use Flutter 3.50.1 / Dart 3.14.0 and JDK 21. Install the Android SDK and set ANDROID_HOME and JAVA_HOME for your machine. Local paths are not committed.
+Toolchain used for the reviewed build: Flutter 3.50.1, Dart 3.14.0, JDK 21, Android SDK 36 and Gradle 9.5. Set ANDROID_HOME and JAVA_HOME for your own installation, then run:
 
 ```sh
 flutter pub get
-flutter test
+flutter test --dart-define=PREVIEW_FIXTURES=true
 flutter analyze
-flutter build apk --release --target-platform android-arm64 --dart-define=API_BASE_URL=https://rayeq-platform.onrender.com/api/v1
+flutter build apk --release --target-platform android-arm64 \
+  --dart-define=API_BASE_URL=https://rayeq-platform.onrender.com/api/v1
 ```
 
-Android package: `com.rayeq.rayeq`, minimum SDK 24, target SDK 36. This pilot packaging is ARM64-only, including plugin native libraries. APK output: `build/app/outputs/flutter-apk/app-release.apk`.
+Package: `com.rayeq.rayeq`. Version: `1.1.0+2`. The reviewed APK is ARM64-only, minimum Android API 24, target API 36. Native libraries use legacy extraction for compatibility. Output: `build/app/outputs/flutter-apk/app-release.apk`.
 
-The current release build type uses the local Android development certificate. It is suitable for a manually installed test build, not a production signing arrangement. Keep a separate, durable production key outside source control before store distribution or a public update commitment.
+`PREVIEW_FIXTURES` defaults to false. Only pass `--dart-define=PREVIEW_FIXTURES=true` for an explicitly requested review build. The flag enables the demo barber directory and known bilingual sample labels. It does not create or delete backend records. Backend pilot cleanup must be handled separately, with owner approval.
 
-## Live path
+## Signing and updates
 
-`lib/live.dart` is the default app. `lib/api.dart` is the HTTPS/Bearer JSON client and secure session storage. Roles are fetched from `/me`, not granted by a local setting. Pending workers never fetch assignment data.
+This pilot uses the local Android development signing configuration. The signing key is deliberately not included in this source archive. Building on a new machine creates a different development certificate unless the original keystore is securely restored. That build cannot update the already installed pilot app.
 
-Implemented mobile routes include registration, email-code verification/resend, login/logout/session restore, password reset, live catalog, customer current/past booking lists with pagination, quote review and idempotent booking creation, assigned worker visits, forward status updates and a 30-day Cairo-time schedule.
+Preserve the original signing key securely before relying on continued pilot updates. Do not commit a keystore or its password. Switching to a different signing certificate requires a separate migration plan; changing the key in this project alone does not upgrade existing installations.
 
-Server-side validation, price snapshots, assignment conflicts, role checks and token verification remain the backend's responsibility. UI checks do not replace those controls.
+The Android update flow checks an HTTPS download on the configured allowed host, limits the download size, verifies SHA-256, package name, exact advertised version code, a higher installed-version code, and matching signing certificates. It uses Android's package installer, including the user's unknown-source consent when required. It does not silently install. Update metadata and binaries must be published only after release approval.
 
-Original design fixtures remain in `lib/main.dart` only for explicit `--dart-define=DESIGN_PREVIEW=true` builds. They are not used as fallback live data.
+Compilation, APK metadata and signing checks passed. Installation, update download and build-1-to-build-2 upgrade have not been tested on a real Android device.
 
-## Pilot state, 22 November 2026
+## App structure
 
-The deployed catalog was checked with intake disabled, demo flag true, empty services/areas, no support number and InstaPay unavailable. Do not seed invented commercial prices or payment details. Email delivery is not ready yet. Registration/verification/booking end-to-end and Android installation/launch have not passed a real-device check.
+- `lib/live.dart`: authentication, customer and worker screens, bookings and schedules.
+- `lib/api.dart`: HTTPS API, Bearer sessions, secure session storage and booking idempotency.
+- `lib/localization.dart`: Arabic and English copy, saved locale and direction.
+- `lib/profile.dart`: profile details, avatar and account actions.
+- `lib/about.dart`: About, factual privacy information and text-only development credit.
+- `lib/app_updates.dart`: update presentation and native bridge.
+- `lib/demo_data.dart`: isolated, compile-time-gated review data.
+- `android/app/src/main/kotlin/com/rayeq/rayeq/MainActivity.kt`: native APK verification and installer handoff.
 
-Ten local automated tests pass. These include transport/session behavior and role/fixture-isolation widget checks. A successful build or signature check is not a device runtime test.
+Roles come from the server, not a local selector. Worker registration does not grant approval. Pending workers do not receive assigned visits. Booking requests require admin review and assignment. Worker completion does not mark a booking paid. Mobile checks do not replace backend authorization, price validation or assignment-conflict checks.
+
+Names and other text entered by real users remain as entered. Known pilot samples and optional English backend fields have bilingual display support. The interface defaults to Arabic and supports a saved English selection.
+
+## Verification and limits
+
+The current local suite has 20 passing tests with review fixtures enabled. Tests cover transport/session behavior, role restrictions, fixture isolation, localization and phone-sized component layouts. Visual tests write PNGs to the system temporary directory under `rayeq-visual-review`. Set `RAYEQ_VISUAL_OUTPUT` to choose another folder.
+
+A passing local suite is not a full live-service or real-device acceptance test. SMTP delivery, account lifecycle, production privacy/support contact, real operational data, durable key storage and Android runtime acceptance need their own release checks. The privacy screen describes implemented data handling; it does not claim legal certification or an unimplemented retention/deletion process.
+
+See `PHOTO_CREDITS.md` for the stock-image sources and license references. The current branding is a temporary wordmark, not a finalized logo.

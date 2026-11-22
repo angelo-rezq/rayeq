@@ -6,12 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:rayeq/api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rayeq/main.dart';
 
 Future<void> login(WidgetTester tester, RayeqApi api) async {
   await tester.pumpWidget(RayeqApp(api: api));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('خلّينا نبدأ'));
+  await tester.tap(find.text('تسجيل الدخول'));
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField).at(0), 'test@example.com');
   await tester.enterText(find.byType(TextField).at(1), 'Test-only-password-9');
@@ -24,7 +25,10 @@ Future<void> login(WidgetTester tester, RayeqApi api) async {
 }
 
 void main() {
-  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({});
+  });
   testWidgets(
     'unverified login stays at email verification and never fetches bookings',
     (tester) async {
@@ -55,7 +59,7 @@ void main() {
         baseUrl: 'https://example.com/api/v1',
         client: MockClient((r) async {
           paths.add(r.url.path);
-          if (r.url.path.endsWith('/auth/login'))
+          if (r.url.path.endsWith('/auth/login')) {
             return http.Response(
               jsonEncode({
                 'data': {'token': 'test-token'},
@@ -63,7 +67,8 @@ void main() {
               200,
               headers: {'content-type': 'application/json; charset=utf-8'},
             );
-          if (r.url.path.endsWith('/me'))
+          }
+          if (r.url.path.endsWith('/me')) {
             return http.Response(
               jsonEncode({
                 'data': {
@@ -75,6 +80,7 @@ void main() {
               200,
               headers: {'content-type': 'application/json; charset=utf-8'},
             );
+          }
           throw StateError('Pending role attempted protected data');
         }),
       );
@@ -93,7 +99,7 @@ void main() {
         baseUrl: 'https://example.com/api/v1',
         client: MockClient((r) async {
           final path = r.url.path;
-          if (path.endsWith('/auth/login'))
+          if (path.endsWith('/auth/login')) {
             return http.Response(
               jsonEncode({
                 'data': {'token': 'test-token'},
@@ -101,7 +107,8 @@ void main() {
               200,
               headers: {'content-type': 'application/json; charset=utf-8'},
             );
-          if (path.endsWith('/me'))
+          }
+          if (path.endsWith('/me')) {
             return http.Response(
               jsonEncode({
                 'data': {
@@ -113,7 +120,8 @@ void main() {
               200,
               headers: {'content-type': 'application/json; charset=utf-8'},
             );
-          if (path.endsWith('/catalog'))
+          }
+          if (path.endsWith('/catalog')) {
             return http.Response(
               jsonEncode({
                 'data': {'intakeEnabled': false, 'services': [], 'areas': []},
@@ -121,7 +129,8 @@ void main() {
               200,
               headers: {'content-type': 'application/json; charset=utf-8'},
             );
-          if (path.endsWith('/bookings'))
+          }
+          if (path.endsWith('/bookings')) {
             return http.Response(
               jsonEncode({
                 'data': {'items': [], 'nextCursor': null},
@@ -129,6 +138,7 @@ void main() {
               200,
               headers: {'content-type': 'application/json; charset=utf-8'},
             );
+          }
           throw StateError('Unexpected endpoint');
         }),
       );

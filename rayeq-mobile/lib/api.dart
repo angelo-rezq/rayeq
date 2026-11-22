@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -122,7 +123,7 @@ class RayeqApi {
       final messages = <String, String>{
         'EMAIL_NOT_VERIFIED': 'فعّل بريدك الإلكتروني الأول.',
         'INVALID_CREDENTIALS': 'الإيميل أو كلمة المرور مش صحيحة.',
-        'WORKER_APPROVAL_PENDING': 'حساب العامل في انتظار موافقة الإدارة.',
+        'WORKER_APPROVAL_PENDING': 'حساب الحلاق في انتظار موافقة الإدارة.',
         'PRICE_CHANGED': 'السعر اتحدث. راجع السعر الجديد قبل تأكيد الطلب.',
         'INVALID_TRANSITION': 'حالة الزيارة اتغيرت. حدّث الصفحة وجرّب تاني.',
         'VALIDATION_ERROR': 'راجع البيانات المطلوبة وجرّب تاني.',
@@ -136,7 +137,9 @@ class RayeqApi {
       throw ApiFailure(
         code,
         messages[code] ??
-            (response.statusCode == 429
+            (response.statusCode == 401
+                ? 'جلسة الدخول انتهت. سجّل دخولك تاني.'
+                : response.statusCode == 429
                 ? 'استنى شوية قبل المحاولة التالية.'
                 : 'الطلب مكملش. جرّب مرة تانية أو تواصل مع الإدارة.'),
         status: response.statusCode,
@@ -175,6 +178,53 @@ class RayeqApi {
     } finally {
       await forgetSession();
     }
+  }
+
+  Future<http.Response> rawAvatar(
+    String method, {
+    Uint8List? bytes,
+    String? contentType,
+  }) async {
+    final req = http.Request(method, _url('profile/avatar'));
+    if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
+    if (contentType != null) req.headers['Content-Type'] = contentType;
+    if (bytes != null) req.bodyBytes = bytes;
+    http.Response res;
+    try {
+      res = await http.Response.fromStream(
+        await _http.send(req).timeout(const Duration(seconds: 30)),
+      );
+    } catch (_) {
+      throw const ApiFailure('NETWORK_ERROR', 'تعذر الاتصال. جرّب تاني.');
+    }
+    if (res.statusCode == 404 && method == 'GET') return res;
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      if (res.statusCode == 401) await forgetSession();
+      throw ApiFailure(
+        'PROFILE_ERROR',
+        res.statusCode == 413
+            ? 'الصورة كبيرة. اختار صورة أصغر من ٢ ميجا.'
+            : 'تعذر تحديث الصورة. جرّب تاني.',
+        status: res.statusCode,
+      );
+    }
+    return res;
+  }
+
+  Future<Uint8List?> getAvatar() async {
+    final r = await rawAvatar('GET');
+    return r.statusCode == 404 ? null : r.bodyBytes;
+  }
+
+  Future<void> uploadAvatar(Uint8List bytes, String contentType) async {
+    if (bytes.length > 2 * 1024 * 1024) {
+      throw const ApiFailure('IMAGE_TOO_LARGE', 'اختار صورة أصغر من ٢ ميجا.');
+    }
+    await rawAvatar('PUT', bytes: bytes, contentType: contentType);
+  }
+
+  Future<void> deleteAvatar() async {
+    await rawAvatar('DELETE');
   }
 
   void close() => _http.close();

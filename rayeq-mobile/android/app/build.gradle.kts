@@ -31,6 +31,7 @@ android {
     }
 
     packaging {
+        jniLibs.useLegacyPackaging = true
         jniLibs.excludes += setOf("**/x86_64/**", "**/armeabi-v7a/**")
     }
     buildTypes {
