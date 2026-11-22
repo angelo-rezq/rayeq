@@ -30,3 +30,6 @@ All SQL is parameterized. Server owns roles and financial fields. Public catalog
 
 ### Render Free email transport
 Render Free blocks SMTP ports 25/465/587. Set `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, and `MAIL_FROM` for HTTPS delivery on this host. The sender must already be validated and active in Mailjet. The HTTP adapter checks both HTTP success and Mailjet's per-message success response. SMTP remains available for other hosts, but is not the Render Free production path. References: https://render.com/docs/free and https://dev.mailjet.com/email/guides/send-api-v31/ .
+
+## Android pilot
+Matching Flutter source is in `rayeq-mobile/`, with its own build and verification notes. The versioned ARM64 APK is served at `/download/rayeq-pilot-arm64-1.0.0.apk` with Android MIME type and attachment disposition. SHA-256: `a895f9efecd4548da693b34b8fb32b9a42a4045fadec24d95a7566a682335091`, 19,331,403 bytes. This is a manually installed test build using a development signing certificate. Real-device installation, email delivery and complete registration-to-booking checks remain launch gates.
