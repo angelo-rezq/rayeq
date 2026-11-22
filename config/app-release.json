@@ -4,5 +4,6 @@
   "minSupportedBuild": 1,
   "apkUrl": "https://rayeq-platform.onrender.com/download/rayeq-pilot-arm64-1.0.0.apk",
   "sha256": "a895f9efecd4548da693b34b8fb32b9a42a4045fadec24d95a7566a682335091",
-  "releaseNotesAr": "النسخة التجريبية الأولى. للاختبار فقط، وليست لإرسال زيارات حقيقية."
+  "releaseNotesAr": "النسخة التجريبية الأولى. للاختبار فقط، وليست لإرسال زيارات حقيقية.",
+  "releaseNotesEn": "First pilot version. For testing only, not for real visits."
 }

@@ -14,7 +14,8 @@ No login, session or database query is required. The normal API envelope applies
     "minSupportedBuild": 1,
     "apkUrl": "https://rayeq-platform.onrender.com/download/rayeq-pilot-arm64-1.0.0.apk",
     "sha256": "a895f9efecd4548da693b34b8fb32b9a42a4045fadec24d95a7566a682335091",
-    "releaseNotesAr": "النسخة التجريبية الأولى. للاختبار فقط، وليست لإرسال زيارات حقيقية."
+    "releaseNotesAr": "النسخة التجريبية الأولى. للاختبار فقط، وليست لإرسال زيارات حقيقية.",
+    "releaseNotesEn": "First pilot version. For testing only, not for real visits."
   }
 }
 ```
@@ -25,6 +26,7 @@ No login, session or database query is required. The normal API envelope applies
 - `apkUrl`: HTTPS download on this Rayeq service, without query or fragment.
 - `sha256`: lowercase SHA-256 of the exact APK bytes.
 - `releaseNotesAr`: plain Arabic text, not HTML or executable content.
+- `releaseNotesEn`: optional plain English text. Clients in English mode should use it when present and fall back to `releaseNotesAr` when absent. Existing required fields and their meanings are unchanged.
 
 The response sends `Cache-Control: no-store`, `CDN-Cache-Control: no-store`, `Surrogate-Control: no-store`, `Pragma: no-cache` and `Expires: 0`. The route is dynamic. The metadata is read from the deployed config, not a mutable shared cache. Render Free cold starts can delay the response, so the client should have a timeout and retry option.
 
