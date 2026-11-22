@@ -54,3 +54,13 @@ DELETE returns 204 and removes the public portrait. It does not delete a private
 Admins use the equivalent routes at `/admin/employees/:employeeId/public-profile` and `/portrait`. The dashboard has a `الملف العام` button on employee rows. Editing an employee's public profile does not change their private employment information.
 
 Demo fixtures can be added with `scripts/demo-public-profiles.ts` only while the ownership-checked pilot manifest is active and intake is off. The demo portraits are existing credited stock assets or a monogram. Bios explicitly identify the stock portrait, years and specialties as fictional display data. Existing edited profiles are not overwritten. The guarded demo-reset dry run includes the public-profile count; no reset is executed as part of this feature.
+
+## Desktop editor and public image delivery
+
+The employee public-profile editor uses a 1040px maximum-width dialog and paired Arabic/English fields on desktop. Under 800px it returns to a single column. Other dialogs keep their existing width. The upload control is labelled and keyboard-focusable.
+
+Only `/api/v1/work-photos/:id` and `/api/v1/barber-portraits/:id` allow unauthenticated public media reads with `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin`. GET, HEAD and OPTIONS are supported. HEAD has the image content type but no body. Cache-Control remains no-store and X-Content-Type-Options remains nosniff. Staff activation, demo expiry, deletion and existing rate limits still apply. Private account avatars, administrative images and JSON APIs do not gain these public media headers.
+
+The backed-up build-2 featured-card widget used a fixed scissors icon, and its customer profile had no portrait input. The previous API had no portrait URL. Adding transport headers alone cannot make those widgets display a portrait. The mobile client must consume the additive portraitUrl/galleryThumbnailUrl fields and render the new profile fields. No device-wide image failure is claimed fixed without a real-device check of the updated app.
+
+Read-only live HTTP/decode check: `node --import tsx scripts/public-media-http-smoke.ts`. It checks the seeded demo portrait/gallery URLs, public methods and headers, actual WebP decoding and that the private avatar remains protected. It does not create a login session or change content.
