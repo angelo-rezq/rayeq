@@ -27,3 +27,6 @@ Private GitHub repo, Render Free Node service, Frankfurt, build `npm ci && npm r
 
 ## Data protection and recovery
 All SQL is parameterized. Server owns roles and financial fields. Public catalog excludes private records. Mutations use DB-backed limits and audit trails. No secrets are committed. Neon currently shows 6-hour restore history on this Free project; arrange independent encrypted exports before live business use. No backup automation is claimed. Advanced discounts, reviews, push notifications, saved-address management, route optimization and full shift scheduling are outside today's slice.
+
+### Render Free email transport
+Render Free blocks SMTP ports 25/465/587. Set `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, and `MAIL_FROM` for HTTPS delivery on this host. The sender must already be validated and active in Mailjet. The HTTP adapter checks both HTTP success and Mailjet's per-message success response. SMTP remains available for other hosts, but is not the Render Free production path. References: https://render.com/docs/free and https://dev.mailjet.com/email/guides/send-api-v31/ .
