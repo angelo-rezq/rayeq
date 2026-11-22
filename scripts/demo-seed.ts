@@ -1,3 +1,4 @@
+import {prepareNearbyDemo} from '../lib/demo-nearby';
 import {pilotPreview,pilotNearbyBarbers} from '../lib/demo-fixtures';
 import {DateTime} from 'luxon';
 import {pool,tx,audit} from '../lib/db';
@@ -20,7 +21,8 @@ async function main(){console.log(await tx(async db=>{
  await db.query('INSERT INTO rayeq_areas(id,name_ar,name_en,travel_fee_minor,active) VALUES($1,$2,$3,0,true)',[areaIds[0],pilotPreview.areaNameAr,pilotPreview.areaNameEn]);
  await db.query('UPDATE rayeq_employees SET service_ids=$1,area_ids=$2,name_en=$4 WHERE id=$3',[serviceIds,areaIds,employee.id,pilotPreview.workerNameEn]);
  const expiresAt=DateTime.now().setZone('Africa/Cairo').plus({days:7}).toUTC().toISO();
- const manifest={nearbyBarbers:pilotNearbyBarbers(employee.id,serviceIds,areaIds),nearbySeededAt:new Date().toISOString(),seedId,serviceIds,areaIds,customerId:customer.id,workerUserId:worker.id,employeeId:employee.id,previousServiceIds:employee.service_ids,previousAreaIds:employee.area_ids,createdAt:new Date().toISOString(),expiresAt};
+ let manifest:any={nearbyBarbers:pilotNearbyBarbers(employee.id,serviceIds,areaIds),nearbySeededAt:new Date().toISOString(),seedId,serviceIds,areaIds,customerId:customer.id,workerUserId:worker.id,employeeId:employee.id,previousServiceIds:employee.service_ids,previousAreaIds:employee.area_ids,createdAt:new Date().toISOString(),expiresAt};
+ manifest=await prepareNearbyDemo(db,manifest);
  c.demoPilot={enabled:true,seedId,customerIds:[customer.id],serviceIds,areaIds,expiresAt};
  await db.query("UPDATE rayeq_settings SET value=$1 WHERE key='config'",[JSON.stringify(c)]);
  await db.query('INSERT INTO rayeq_settings(key,value) VALUES($1,$2)',[key,JSON.stringify(manifest)]);

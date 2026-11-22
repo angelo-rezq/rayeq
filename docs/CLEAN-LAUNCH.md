@@ -10,15 +10,15 @@ Preview and run all preflight guards without deleting anything:
 npm run demo:reset -- --clean-launch
 ```
 
-Only after approval, the operator can add `--confirm`. The clean-launch mode implies removal of the two pilot accounts and mapped pilot employee. It also sets `isDemo=false`, removes the demo allowlist/expiry config and leaves public booking intake closed.
+Only after approval, the operator can add `--confirm`. The clean-launch mode implies removal of the two pilot accounts and mapped pilot employee, plus the two manifest-owned nearby preview employees. It also sets `isDemo=false`, removes the demo allowlist/expiry config and leaves public booking intake closed.
 
-The wipe is scoped by the `rayeq-pilot-20261122` ownership manifest and `demoSeed`, not display names. It removes its bookings, their idempotency records, seeded services/area, pilot sessions and verification/reset codes, pilot users and employee. User profile/avatar rows are removed by their user foreign-key cascade. The real admin account and credentials are preserved. Historical admin audit entries remain, with retired test actors detached. Those entries can contain old fictional fixture labels; they are not active customer/booking data.
+The wipe is scoped by the `rayeq-pilot-20261122` ownership manifest and `demoSeed`, not display names. It removes its bookings, their idempotency records, seeded services/area, pilot sessions and verification/reset codes, pilot users and all three manifest-owned employees. User profile/avatar rows are removed by their user foreign-key cascade. The real admin account and credentials are preserved. Historical admin audit entries remain, with retired test actors detached. Those entries can contain old fictional fixture labels; they are not active customer/booking data.
 
 Preflight aborts if unexpected account ownership, unrelated bookings, payroll, or other employees reference the pilot records/catalog. It never deletes an unrelated real record to make a wipe succeed.
 
 ## Expected state from the current pilot
 
-The last dry-run found two bookings, two services, one area, two test accounts and one test employee to remove. There is currently one real admin and no payroll. If no new real records arrive before execution, a successful approved cleanup would leave:
+The last dry-run found two bookings, two services, one area, two test accounts and three test employees to remove, including the two nearby preview employees. There is currently one real admin and no payroll. If no new real records arrive before execution, a successful approved cleanup would leave:
 
 - One real admin account with the same credentials.
 - Zero customer/worker accounts, employee records, bookings, services, areas and payroll records.
