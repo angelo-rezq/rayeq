@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {DateTime} from 'luxon';
+import {pool} from '../lib/db';
+import {session,hash} from '../lib/auth';
+const base='https://rayeq-platform.onrender.com/api/v1',tokens:string[]=[],keys:string[]=[];let customerId='';
+async function main(){
+ const m=(await pool.query("SELECT value FROM rayeq_settings WHERE key='demo:rayeq-pilot-20261122'")).rows[0]?.value,c=(await pool.query("SELECT value FROM rayeq_settings WHERE key='config'")).rows[0]?.value;
+ assert.ok(m&&c?.isDemo&&c.intakeEnabled===false&&c.demoPilot?.enabled&&Date.parse(c.demoPilot.expiresAt)>Date.now(),'Closed, active demo required');customerId=m.customerId;
+ async function actor(id:string,email:string){const row=(await pool.query('SELECT * FROM rayeq_users WHERE id=$1 AND email=$2 AND email_verified',[id,email])).rows[0];assert.ok(row,'Pilot identity mismatch');const s=await session(pool,row);tokens.push(s.token);return s.token;}
+ const customer=await actor(m.customerId,'customer-test@rayeq.invalid'),worker=await actor(m.workerUserId,'worker-test@rayeq.invalid');
+ async function api(path:string,token:string,data?:any,key?:string){const response=await fetch(base+path,{method:data?'POST':'GET',headers:{Authorization:'Bearer '+token,...(data?{'Content-Type':'application/json'}:{}),...(key?{'Idempotency-Key':key}:{})},body:data?JSON.stringify(data):undefined});return{status:response.status,...await response.json()};}
+ const quote=(await api('/quotes',customer,{serviceId:m.serviceIds[0],areaId:m.areaIds[0]})).data,slot=DateTime.now().setZone('Africa/Cairo').plus({days:2}).set({hour:11,minute:0,second:0,millisecond:0});
+ const payload={serviceId:m.serviceIds[0],areaId:m.areaIds[0],serviceVersion:quote.serviceVersion,areaVersion:quote.areaVersion,customerName:'كريم أحمد',contactPhone:'01000000000',locationType:'home',address:{street:'شارع مراجعة مؤقت',building:'1'},bookingType:'scheduled',localDate:slot.toFormat('yyyy-MM-dd'),localTime:slot.toFormat('HH:mm'),timezone:'Africa/Cairo',paymentMethod:'cash',preferredBarberId:m.employeeId,customerLocation:{latitude:28.0870967,longitude:30.7618397}};
+ const first=randomUUID();keys.push(first);let r=await api('/bookings',customer,payload,first);assert.equal(r.status,201);assert.equal(r.data.status,'CONFIRMED');assert.equal(r.data.assignmentMode,'CUSTOMER_SELECTED');assert.equal(r.data.requiresAdminApproval,false);assert.equal(r.data.isAssigned,true);assert.equal(r.data.assignedWorker.id,m.employeeId);assert.ok(r.data.assignedWorker.nameAr&&r.data.assignedWorker.nameEn);assert.ok(r.data.startAt&&r.data.endAt);const direct=r.data;
+ const stored=(await pool.query('SELECT document FROM rayeq_bookings WHERE id=$1',[direct.id])).rows[0].document;assert.ok(!('customerLocation'in stored)&&!JSON.stringify(stored).includes(String(payload.customerLocation.latitude)));
+ const conflict=randomUUID();keys.push(conflict);r=await api('/bookings',customer,payload,conflict);assert.equal(r.status,409);assert.equal(r.error.code,'BARBER_UNAVAILABLE');
+ r=await api('/worker/schedule?from='+slot.toFormat('yyyy-MM-dd')+'&to='+slot.toFormat('yyyy-MM-dd'),worker);assert.ok(r.data.items.some((b:any)=>b.bookingId===direct.id&&b.status==='CONFIRMED'));
+ const {preferredBarberId,customerLocation,...managed}=payload;const second=randomUUID();keys.push(second);r=await api('/bookings',customer,managed,second);assert.equal(r.status,201);assert.equal(r.data.status,'PENDING');assert.equal(r.data.assignmentMode,'MANAGED');assert.equal(r.data.isAssigned,false);assert.equal(r.data.requiresAdminApproval,true);
+ console.log(JSON.stringify({verifiedLive:true,direct:{status:direct.status,assignmentMode:direct.assignmentMode,isAssigned:direct.isAssigned,requiresAdminApproval:direct.requiresAdminApproval,assignedWorker:direct.assignedWorker,startAt:direct.startAt,endAt:direct.endAt},managed:{status:r.data.status,assignmentMode:r.data.assignmentMode,isAssigned:r.data.isAssigned,requiresAdminApproval:r.data.requiresAdminApproval},overlapRejected:true,visibleToWorker:true,noCustomerCoordinatesSaved:true,consentOmittedAccepted:true},null,2));
+}
+main().catch(e=>{console.error('LIVE DIRECT CHECK',e.message);process.exitCode=1}).finally(async()=>{
+ try{if(customerId&&keys.length){const ids=(await pool.query('SELECT i.booking_id FROM rayeq_idempotency i JOIN rayeq_bookings b ON b.id=i.booking_id WHERE i.user_id=$1 AND i.key=ANY($2::text[]) AND b.customer_id=$1 AND b.document->>\'demoSeed\'=$3',[customerId,keys,'rayeq-pilot-20261122'])).rows.map(r=>r.booking_id);await pool.query('DELETE FROM rayeq_idempotency WHERE user_id=$1 AND key=ANY($2::text[])',[customerId,keys]);await pool.query('DELETE FROM rayeq_audit WHERE entity_id=ANY($1::text[])',[ids]);await pool.query('DELETE FROM rayeq_bookings WHERE id=ANY($1::uuid[]) AND customer_id=$2',[ids,customerId]);console.log('Removed temporary QA bookings',ids.length);}}
+ finally{if(tokens.length)await pool.query('DELETE FROM rayeq_sessions WHERE token_hash=ANY($1::text[])',[tokens.map(hash)]);await pool.end();console.log('Revoked temporary QA sessions');}
+});
