@@ -60,7 +60,7 @@ The startup migration touches only `rayeq_` tables in the configured dedicated d
 
 **Full-Stack Developer · Flutter · Next.js · React**
 
-[![Portfolio](https://img.shields.io/badge/Portfolio-black?style=for-the-badge)](https://angelo-portfolio.angluosr.workers.dev)
+[![Portfolio](https://img.shields.io/badge/Eng_Angluos_Rezq-black?style=for-the-badge)](https://eng-angluos-rezq.angluosr.workers.dev)
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-Chat-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/201127570256)
 [![Email](https://img.shields.io/badge/Email-angelo.rezq.dev%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:angelo.rezq.dev@gmail.com)
 
